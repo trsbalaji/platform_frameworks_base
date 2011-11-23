@@ -25,6 +25,7 @@ import android.os.SystemProperties;
 import android.util.FloatMath;
 import android.util.Log;
 import android.util.Slog;
+import android.os.SystemProperties;
 
 /**
  * A special helper class used by the WindowManager
@@ -320,10 +321,26 @@ public abstract class WindowOrientationListener {
         // The ideal tilt angle is 0 (when the device is vertical) so the limits establish
         // how close to vertical the device must be in order to change orientation.
         private static final int[][] TILT_TOLERANCE = new int[][] {
-            /* ROTATION_0   */ { -25, 70 },
-            /* ROTATION_90  */ { -25, 65 },
-            /* ROTATION_180 */ { -25, 60 },
-            /* ROTATION_270 */ { -25, 65 }
+            /* ROTATION_0   */
+            {
+                SystemProperties.getInt("ro.rotation.tilt.0.down", -20),
+                SystemProperties.getInt("ro.rotation.tilt.0.up",70)
+            },
+            /* ROTATION_90   */
+            {
+                SystemProperties.getInt("ro.rotation.tilt.90.down", -20),
+                SystemProperties.getInt("ro.rotation.tilt.90.up",60)
+            },
+            /* ROTATION_180   */
+            {
+                SystemProperties.getInt("ro.rotation.tilt.180.down", -20),
+                SystemProperties.getInt("ro.rotation.tilt.180.up",50)
+            },
+            /* ROTATION_270   */
+            {
+                SystemProperties.getInt("ro.rotation.tilt.270.down", -20),
+                SystemProperties.getInt("ro.rotation.tilt.270.up",60)
+            }
         };
 
         // The gap angle in degrees between adjacent orientation angles for hysteresis.
