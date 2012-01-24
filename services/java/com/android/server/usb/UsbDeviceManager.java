@@ -181,7 +181,14 @@ public class UsbDeviceManager {
                 mContext.getSystemService(Context.STORAGE_SERVICE);
         StorageVolume[] volumes = storageManager.getVolumeList();
         if (volumes.length > 0) {
-            massStorageSupported = volumes[0].allowMassStorage();
+            for (StorageVolume vol : volumes) {
+                // Once we find the primary storage we need not
+                // go further.
+                if (vol.isPrimaryStorage()) {
+                    massStorageSupported = vol.allowMassStorage();
+                    break;
+                }
+            }
         }
         mUseUsbNotification = !massStorageSupported;
 
