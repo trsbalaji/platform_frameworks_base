@@ -520,6 +520,18 @@ public class ZygoteInit {
 
     public static void main(String argv[]) {
         try {
+
+            // If requested, start system server directly from Zygote
+            if (argv.length != 2) {
+                throw new RuntimeException(argv[0] + USAGE_STRING);
+            }
+
+            if (argv[1].equals("start-system-server")) {
+                startSystemServer();
+            } else if (!argv[1].equals("")) {
+                throw new RuntimeException(argv[0] + USAGE_STRING);
+            }
+
             // Start profiling the zygote initialization.
             SamplingProfilerIntegration.start();
 
@@ -535,17 +547,6 @@ public class ZygoteInit {
 
             // Do an initial gc to clean up after startup
             gc();
-
-            // If requested, start system server directly from Zygote
-            if (argv.length != 2) {
-                throw new RuntimeException(argv[0] + USAGE_STRING);
-            }
-
-            if (argv[1].equals("start-system-server")) {
-                startSystemServer();
-            } else if (!argv[1].equals("")) {
-                throw new RuntimeException(argv[0] + USAGE_STRING);
-            }
 
             Log.i(TAG, "Accepting command socket connections");
 
