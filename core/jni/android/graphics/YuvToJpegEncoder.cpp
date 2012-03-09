@@ -43,6 +43,7 @@ bool YuvToJpegEncoder::encode(SkWStream* stream, void* inYuv, int width,
     compress(&cinfo, (uint8_t*) inYuv, offsets);
 
     jpeg_finish_compress(&cinfo);
+    jpeg_destroy_compress(&cinfo);
 
     return true;
 }
