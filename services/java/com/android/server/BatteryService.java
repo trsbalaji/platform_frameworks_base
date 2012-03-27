@@ -69,6 +69,7 @@ import java.util.TimerTask;
  * <p>&quot;voltage&quot; - int, current battery voltage in millivolts</p>
  * <p>&quot;temperature&quot; - int, current battery temperature in tenths of
  * a degree Centigrade</p>
+ * <p>&quot;energy&quot; - int, current battery energy in microwatt-hours</p>
  * <p>&quot;technology&quot; - String, the type of battery installed, e.g. "Li-ion"</p>
  */
 class BatteryService extends Binder {
@@ -107,6 +108,7 @@ class BatteryService extends Binder {
     private String mBatteryTechnology;
     private boolean mBatteryLevelCritical;
     private int mInvalidCharger;
+    private int mBatteryEnergy;
 
     private int mLastBatteryStatus;
     private int mLastBatteryHealth;
@@ -413,6 +415,7 @@ class BatteryService extends Binder {
         intent.putExtra(BatteryManager.EXTRA_TEMPERATURE, mBatteryTemperature);
         intent.putExtra(BatteryManager.EXTRA_TECHNOLOGY, mBatteryTechnology);
         intent.putExtra(BatteryManager.EXTRA_INVALID_CHARGER, mInvalidCharger);
+        intent.putExtra(BatteryManager.EXTRA_ENERGY, mBatteryEnergy);
 
         if (false) {
             Slog.d(TAG, "level:" + mBatteryLevel +
@@ -420,6 +423,7 @@ class BatteryService extends Binder {
                     " health:" + mBatteryHealth +  " present:" + mBatteryPresent +
                     " voltage: " + mBatteryVoltage +
                     " temperature: " + mBatteryTemperature +
+                    " energy: " + mBatteryEnergy +
                     " technology: " + mBatteryTechnology +
                     " AC powered:" + mAcOnline + " USB powered:" + mUsbOnline +
                     " icon:" + icon  + " invalid charger:" + mInvalidCharger);
@@ -534,6 +538,7 @@ class BatteryService extends Binder {
                 pw.println("  scale: " + BATTERY_SCALE);
                 pw.println("  voltage:" + mBatteryVoltage);
                 pw.println("  temperature: " + mBatteryTemperature);
+                pw.println("  energy: " + mBatteryEnergy);
                 pw.println("  technology: " + mBatteryTechnology);
             }
         } else if (false) {

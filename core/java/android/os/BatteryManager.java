@@ -87,6 +87,13 @@ public class BatteryManager {
 
     /**
      * Extra for {@link android.content.Intent#ACTION_BATTERY_CHANGED}:
+     * integer containing current battery energy in microwatt-hours.
+     * {@hide}
+     */
+    public static final String EXTRA_ENERGY = "energy";
+
+    /**
+     * Extra for {@link android.content.Intent#ACTION_BATTERY_CHANGED}:
      * Int value set to nonzero if an unsupported charger is attached
      * to the device.
      * {@hide}
