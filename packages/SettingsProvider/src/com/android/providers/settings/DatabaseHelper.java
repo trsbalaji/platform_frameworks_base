@@ -1707,6 +1707,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
             loadIntegerSetting(stmt, Settings.Secure.WIFI_MAX_DHCP_RETRY_COUNT,
                     R.integer.def_max_dhcp_retries);
+
+            loadIntegerSetting(stmt, Settings.Secure.POLL_BATTERY_LEVEL,
+                    R.integer.poll_battery_level);
         } finally {
             if (stmt != null) stmt.close();
         }

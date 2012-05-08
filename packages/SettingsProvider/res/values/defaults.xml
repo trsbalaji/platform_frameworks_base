@@ -151,4 +151,8 @@
     <!-- Number of retries for connecting to DHCP.
          Value here is the same as WifiStateMachine.DEFAULT_MAX_DHCP_RETRIES -->
     <integer name="def_max_dhcp_retries">9</integer>
+
+    <!-- Default for Settings.Secure.POLL_BATTERY_LEVEL -->
+    <integer name="poll_battery_level">0</integer>
+
 </resources>

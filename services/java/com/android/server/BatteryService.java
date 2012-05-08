@@ -91,8 +91,7 @@ class BatteryService extends Binder {
     // This should probably be exposed in the API, though it's not critical
     private static final int BATTERY_PLUGGED_NONE = 0;
 
-    private static final long BATTERY_UPDATE_TASK_INTERVAL =
-            SystemProperties.getLong("persist.svc.battery.poll_ms", 0);
+    private static final long BATTERY_UPDATE_TASK_INTERVAL = 30000; // ms = 30 sec
 
     private final Context mContext;
     private final IBatteryStats mBatteryStats;
@@ -156,7 +155,9 @@ class BatteryService extends Binder {
         update();
 
         // create a timer to poll battery level if so desired
-        if (BATTERY_UPDATE_TASK_INTERVAL > 0) {
+        int is_poll_battery = Settings.Secure.getInt(mContext.getContentResolver(),
+                Settings.Secure.POLL_BATTERY_LEVEL, 0);
+        if (is_poll_battery != 0) {
             Slog.i(TAG, "enabled polling of battery level");
             mBatteryLevelUpdateTimer = new Timer("BatteryLevelUpdateTimer", false);
             mBatteryLevelUpdateTimer.schedule(mBatteryLevelUpdateTimerTask,
