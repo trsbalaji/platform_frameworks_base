@@ -32,6 +32,7 @@ import android.os.DropBoxManager;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.UEventObserver;
 import android.provider.Settings;
 import android.util.EventLog;
@@ -44,6 +45,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 /**
@@ -88,6 +91,9 @@ class BatteryService extends Binder {
     // This should probably be exposed in the API, though it's not critical
     private static final int BATTERY_PLUGGED_NONE = 0;
 
+    private static final long BATTERY_UPDATE_TASK_INTERVAL =
+            SystemProperties.getLong("persist.svc.battery.poll_ms", 0);
+
     private final Context mContext;
     private final IBatteryStats mBatteryStats;
 
@@ -125,6 +131,8 @@ class BatteryService extends Binder {
 
     private boolean mSentLowBatteryBroadcast = false;
 
+    private Timer mBatteryLevelUpdateTimer;
+
     public BatteryService(Context context, LightsService lights) {
         mContext = context;
         mLed = new Led(context, lights);
@@ -146,6 +154,14 @@ class BatteryService extends Binder {
 
         // set initial status
         update();
+
+        // create a timer to poll battery level if so desired
+        if (BATTERY_UPDATE_TASK_INTERVAL > 0) {
+            Slog.i(TAG, "enabled polling of battery level");
+            mBatteryLevelUpdateTimer = new Timer("BatteryLevelUpdateTimer", false);
+            mBatteryLevelUpdateTimer.schedule(mBatteryLevelUpdateTimerTask,
+                    BATTERY_UPDATE_TASK_INTERVAL, BATTERY_UPDATE_TASK_INTERVAL);
+        }
     }
 
     final boolean isPowered() {
@@ -179,6 +195,13 @@ class BatteryService extends Binder {
     private UEventObserver mPowerSupplyObserver = new UEventObserver() {
         @Override
         public void onUEvent(UEventObserver.UEvent event) {
+            update();
+        }
+    };
+
+    private TimerTask mBatteryLevelUpdateTimerTask = new TimerTask() {
+        @Override
+        public void run() {
             update();
         }
     };
