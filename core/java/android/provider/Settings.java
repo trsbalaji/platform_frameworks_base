@@ -4296,6 +4296,12 @@ public final class Settings {
         public static final String SMS_SHORT_CODES_PREFIX = "sms_short_codes_";
 
         /**
+         * Indicate whether to poll for battery level.
+         * {@hide}
+         */
+        public static final String POLL_BATTERY_LEVEL = "poll_battery_level";
+
+        /**
          * This are the settings to be backed up.
          *
          * NOTE: Settings are backed up and restored in the order they appear
