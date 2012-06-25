@@ -116,6 +116,9 @@
         <xliff:g id="number">%d</xliff:g><xliff:g id="percent">%%</xliff:g>
     </string>
 
+    <!-- Name of the button that trigger power off dialog. [CHAR LIMIT=NONE] -->
+    <string name="status_bar_settings_device_power_off">Power off</string>
+
     <!-- Separator for PLMN and SPN in network name. -->
     <string name="status_bar_network_name_separator" translatable="false">|</string>
 

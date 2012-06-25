@@ -23,6 +23,24 @@
         android:orientation="vertical"
         >
 
+    <!-- Power off device -->
+    <LinearLayout
+            android:id="@+id/device_power_off"
+            style="@style/StatusBarPanelSettingsRow"
+            >
+
+        <ImageView
+                android:id="@+id/device_power_off_icon"
+                style="@style/StatusBarPanelSettingsIcon"
+                android:src="@android:drawable/ic_lock_power_off"
+                />
+        <TextView
+                style="@style/StatusBarPanelSettingsContents"
+                android:text="@string/status_bar_settings_device_power_off"
+                />
+    </LinearLayout>
+    <View style="@style/StatusBarPanelSettingsPanelSeparator" />
+
     <!-- Airplane mode -->
     <LinearLayout
             android:id="@+id/airplane"
