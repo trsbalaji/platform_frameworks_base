@@ -16,14 +16,17 @@
 
 package com.android.systemui.statusbar.tablet;
 
+import android.app.AlertDialog;
 import android.app.StatusBarManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Slog;
 import android.widget.LinearLayout;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -81,6 +84,7 @@ public class SettingsView extends LinearLayout implements View.OnClickListener {
         mDoNotDisturb = new DoNotDisturbController(context,
                 (CompoundButton)findViewById(R.id.do_not_disturb_checkbox));
         findViewById(R.id.settings).setOnClickListener(this);
+        findViewById(R.id.device_power_off).setOnClickListener(this);
     }
 
     @Override
@@ -98,6 +102,9 @@ public class SettingsView extends LinearLayout implements View.OnClickListener {
                 break;
             case R.id.settings:
                 onClickSettings();
+                break;
+            case R.id.device_power_off:
+                onClickPowerOff();
                 break;
         }
     }
@@ -120,6 +127,31 @@ public class SettingsView extends LinearLayout implements View.OnClickListener {
         getContext().startActivity(new Intent(Settings.ACTION_SETTINGS)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         getStatusBarManager().collapse();
+    }
+
+    // Power off
+    // ----------------------------
+    private void onClickPowerOff() {
+        getStatusBarManager().collapse();
+
+        // Create dialog to get user confirmation
+        final AlertDialog dialog = new AlertDialog.Builder(getContext())
+                    .setTitle(com.android.internal.R.string.power_off)
+                    .setMessage(com.android.internal.R.string.shutdown_confirm_question)
+                    .setPositiveButton(com.android.internal.R.string.yes,
+                        new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // Send request to start ShutdownActivity
+                            Intent intent = new Intent(Intent.ACTION_REQUEST_SHUTDOWN);
+                            intent.putExtra(Intent.EXTRA_KEY_CONFIRM, false);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            getContext().startActivity(intent);
+                        }
+                    })
+                    .setNegativeButton(com.android.internal.R.string.no, null)
+                    .create();
+        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
+        dialog.show();
     }
 }
 
