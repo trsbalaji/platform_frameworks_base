@@ -616,6 +616,11 @@ void FontRenderer::allocateTextureMemory(CacheTexture* cacheTexture) {
 void FontRenderer::cacheBitmap(const SkGlyph& glyph, CachedGlyphInfo* cachedGlyph,
         uint32_t* retOriginX, uint32_t* retOriginY) {
     cachedGlyph->mIsValid = false;
+
+    if (mCacheLines.size() == 0) {
+        ALOGE("cachelines.size=%d",mCacheLines.size());
+        return;
+    }
     // If the glyph is too tall, don't cache it
     if (glyph.fHeight + TEXTURE_BORDER_SIZE > mCacheLines[mCacheLines.size() - 1]->mMaxHeight) {
         ALOGE("Font size to large to fit in cache. width, height = %i, %i",
