@@ -979,6 +979,7 @@ void FontRenderer::precacheLatin(SkPaint* paint) {
 }
 
 void FontRenderer::setFont(SkPaint* paint, uint32_t fontId, float fontSize) {
+    checkInit();
     uint32_t currentNumFonts = mActiveFonts.size();
     int flags = 0;
     if (paint->isFakeBoldText()) {
