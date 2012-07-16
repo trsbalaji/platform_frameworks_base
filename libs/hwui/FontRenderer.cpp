@@ -467,6 +467,7 @@ void FontRenderer::appendRotatedMeshQuad(float x1, float y1, float u1, float v1,
 }
 
 void FontRenderer::setFont(SkPaint* paint, uint32_t fontId, float fontSize) {
+    checkInit();
     int flags = 0;
     if (paint->isFakeBoldText()) {
         flags |= Font::kFakeBold;
