@@ -16,7 +16,9 @@
 
 package com.android.internal.content;
 
+import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.SystemProperties;
 import android.util.Slog;
 
 import java.io.File;
@@ -42,8 +44,48 @@ public class NativeLibraryHelper {
     public static long sumNativeBinariesLI(File apkFile) {
         final String cpuAbi = Build.CPU_ABI;
         final String cpuAbi2 = Build.CPU_ABI2;
-        return nativeSumNativeBinaries(apkFile.getPath(), cpuAbi, cpuAbi2);
+
+        String abi2 = SystemProperties.get("ro.product.cpu.abi2");
+        if (abi2.length() == 0) {
+            return nativeSumNativeBinaries(apkFile.getPath(), cpuAbi, cpuAbi2);
+        } else {
+            // abi2 is set, houdini is enabled
+            long result = nativeSumNativeBinaries(apkFile.getPath(), cpuAbi, cpuAbi2);
+            if (result == 0) {
+                String abiUpgrade = SystemProperties.get("ro.product.cpu.upgradeabi", "armeabi");
+                result = nativeSumNativeBinaries(apkFile.getPath(), cpuAbi, abiUpgrade);
+            }
+            return result;
+        }
     }
+
+    private static native int nativeListNativeBinaries(String file, String cpuAbi, String cpuAbi2);
+
+    /**
+     * List the native binaries info in an APK.
+     *
+     * @param apkFile APK file to scan for native libraries
+     * @return {@link PackageManager#INSTALL_SUCCEEDED} or {@link PackageManager#INSTALL_ABI2_SUCCEEDED}
+     *         or another error code from that class if not
+     */
+    public static int listNativeBinariesLI(File apkFile) {
+        final String cpuAbi = Build.CPU_ABI;
+        final String cpuAbi2 = Build.CPU_ABI2;
+
+        String abi2 = SystemProperties.get("ro.product.cpu.abi2");
+        if (abi2.length() == 0) {
+            return nativeListNativeBinaries(apkFile.getPath(), cpuAbi, cpuAbi2);
+        } else {
+            // abi2 is set, houdini is enabled
+            int result = nativeListNativeBinaries(apkFile.getPath(), cpuAbi, cpuAbi2);
+            if ((result != PackageManager.INSTALL_SUCCEEDED) && (result != PackageManager.INSTALL_ABI2_SUCCEEDED)) {
+                String abiUpgrade = SystemProperties.get("ro.product.cpu.upgradeabi", "armeabi");
+                result = nativeListNativeBinaries(apkFile.getPath(), cpuAbi, abiUpgrade);
+            }
+            return result;
+        }
+    }
+
 
     private native static int nativeCopyNativeBinaries(String filePath, String sharedLibraryPath,
             String cpuAbi, String cpuAbi2);
@@ -53,14 +95,25 @@ public class NativeLibraryHelper {
      *
      * @param apkFile APK file to scan for native libraries
      * @param sharedLibraryDir directory for libraries to be copied to
-     * @return {@link PackageManager#INSTALL_SUCCEEDED} if successful or another
-     *         error code from that class if not
+     * @return {@link PackageManager#INSTALL_SUCCEEDED} or {@link PackageManager#INSTALL_ABI2_SUCCEEDED}
+     *         if successful or another error code from that class if not
      */
     public static int copyNativeBinariesIfNeededLI(File apkFile, File sharedLibraryDir) {
         final String cpuAbi = Build.CPU_ABI;
         final String cpuAbi2 = Build.CPU_ABI2;
-        return nativeCopyNativeBinaries(apkFile.getPath(), sharedLibraryDir.getPath(), cpuAbi,
-                cpuAbi2);
+
+        String abi2 = SystemProperties.get("ro.product.cpu.abi2");
+        if (abi2.length() == 0) {
+            return nativeCopyNativeBinaries(apkFile.getPath(), sharedLibraryDir.getPath(), cpuAbi, cpuAbi2);
+        } else {
+            // abi2 is set, houdini is enabled
+            int result = nativeCopyNativeBinaries(apkFile.getPath(), sharedLibraryDir.getPath(), cpuAbi, cpuAbi2);
+            if ((result != PackageManager.INSTALL_SUCCEEDED) && (result != PackageManager.INSTALL_ABI2_SUCCEEDED)) {
+                String abiUpgrade = SystemProperties.get("ro.product.cpu.upgradeabi", "armeabi");
+                result = nativeCopyNativeBinaries(apkFile.getPath(), sharedLibraryDir.getPath(), cpuAbi, abiUpgrade);
+            }
+            return result;
+        }
     }
 
     // Convenience method to call removeNativeBinariesFromDirLI(File)
