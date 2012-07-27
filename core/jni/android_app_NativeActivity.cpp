@@ -37,9 +37,21 @@
 #include "android_os_MessageQueue.h"
 #include "android_view_InputChannel.h"
 #include "android_view_KeyEvent.h"
+#include <cutils/properties.h>
 
 #define LOG_TRACE(...)
 //#define LOG_TRACE(...) ALOG(LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+
+#ifdef WITH_HOUDINI
+#define NA_HOUDINI_PATH       "/system/lib/libhoudini.so"
+#define NA_HOUDINI_NAME       "libhoudini.so"
+#define NA_HOUDINI_BUILD_PROP "sys.app.na.houdini"
+//extern "C" {
+class Method;
+extern const char* dvmGetMethodShorty(const Method* meth);
+//}
+
+#endif
 
 namespace android
 {
@@ -407,6 +419,9 @@ struct NativeCode : public ANativeActivity {
         inputChannel = NULL;
         nativeInputQueue = NULL;
         mainWorkRead = mainWorkWrite = -1;
+#ifdef WITH_HOUDINI
+        houdiniNativeActivity = NULL;
+#endif
     }
     
     ~NativeCode() {
@@ -432,6 +447,10 @@ struct NativeCode : public ANativeActivity {
             // is really no benefit to unloading the code.
             //dlclose(dlhandle);
         }
+#ifdef WITH_HOUDINI
+        if (houdiniNativeActivity != NULL)
+            delete houdiniNativeActivity;
+#endif
     }
     
     void setSurface(jobject _surface) {
@@ -482,6 +501,9 @@ struct NativeCode : public ANativeActivity {
     int mainWorkRead;
     int mainWorkWrite;
     sp<MessageQueue> messageQueue;
+#ifdef WITH_HOUDINI
+    ANativeActivity *houdiniNativeActivity;
+#endif
 };
 
 void android_NativeActivity_finish(ANativeActivity* activity) {
@@ -596,6 +618,69 @@ static int mainWorkCallback(int fd, int events, void* data) {
     return 1;
 }
 
+#ifdef WITH_HOUDINI
+typedef int (*HOUDINI_INIT)(void *);
+typedef void* (*HOUDINI_DLOPEN)(const char*, int);
+typedef int (*HOUDINI_CREATE_ACTIVITY)(void *funcPt,void *x86Code,void *houdiniCode,void *rawSavedState,void *rawSavedSize);
+typedef void* (*HOUDINI_DLSYM)(void *handle,const char*);
+
+struct {
+    HOUDINI_DLOPEN houdiniDlopen;
+    HOUDINI_CREATE_ACTIVITY houdiniCreateActivity;
+    HOUDINI_DLSYM houdiniDlsym;
+    bool libhoudiniInited;
+} gHoudini = { NULL, NULL, NULL, false };
+
+static void* houdiniDlopen(const char *filename, int flag)
+{
+    void *handle;
+
+    struct {
+        void *logger;
+        void *getShorty;
+    } env;
+
+    char propBuf[PROPERTY_VALUE_MAX];
+    memset(propBuf, 0, PROPERTY_VALUE_MAX);
+    property_get(NA_HOUDINI_BUILD_PROP, propBuf, "");
+    //Do not set this property or set it on will enable houdini
+    if(strcmp(propBuf, "on") && strcmp(propBuf, "")) {
+        return NULL;
+    }
+
+    env.logger = (void*)__android_log_print;
+    env.getShorty = (void*)dvmGetMethodShorty;
+
+    if (!gHoudini.libhoudiniInited) {
+        HOUDINI_INIT houdiniInit;
+        handle = dlopen(NA_HOUDINI_PATH, RTLD_NOW);
+        if (handle == NULL) {
+            ALOGE("failed to open " NA_HOUDINI_NAME "\n");
+            return NULL;
+        }
+        houdiniInit = (HOUDINI_INIT)dlsym(handle, "dvm2hdInit");
+        if (houdiniInit == NULL) {
+            ALOGE("Cannot find symbol dvm2hdInit, please check the " NA_HOUDINI_NAME " library is correct: %s!\n", dlerror());
+            return NULL;
+        }
+        if (!houdiniInit((void*)&env)) {
+            ALOGE("libhoudini init failed!\n");
+            return NULL;
+        }
+        gHoudini.houdiniDlopen = (HOUDINI_DLOPEN)dlsym(handle, "dvm2hdDlopen");
+        gHoudini.houdiniDlsym = (HOUDINI_DLSYM)dlsym(handle, "dvm2hdDlsym");
+        gHoudini.houdiniCreateActivity = (HOUDINI_CREATE_ACTIVITY)dlsym(handle, "androidrt2hdCreateActivity");
+        if (!gHoudini.houdiniDlopen || !gHoudini.houdiniDlsym || !gHoudini.houdiniCreateActivity) {
+            ALOGE("The library symbol is missing, please check the libhoudini library is correct: %s!\n", dlerror());
+            return NULL;
+        }
+        gHoudini.libhoudiniInited = true;
+    }
+
+    return gHoudini.houdiniDlopen(filename, flag);
+}
+#endif
+
 // ------------------------------------------------------------------------
 
 static jint
@@ -604,20 +689,49 @@ loadNativeCode_native(JNIEnv* env, jobject clazz, jstring path, jstring funcName
         jstring externalDataDir, int sdkVersion,
         jobject jAssetMgr, jbyteArray savedState)
 {
+#ifdef WITH_HOUDINI
+    bool houdiniUsed = false;
+#endif
+
     LOG_TRACE("loadNativeCode_native");
 
     const char* pathStr = env->GetStringUTFChars(path, NULL);
     NativeCode* code = NULL;
     
     void* handle = dlopen(pathStr, RTLD_LAZY);
-    
+
+#ifdef WITH_HOUDINI
+    if (handle == NULL) {
+        ALOGD("try to open %s by houdini.\n",pathStr);
+        handle = houdiniDlopen(pathStr, RTLD_LAZY);
+        if (handle == NULL) {
+            ALOGE("failed to open %s by houdini.\n",pathStr);
+        }
+        else {
+            ALOGD("succeeed to open %s by houdini.\n",pathStr);
+            houdiniUsed = true;
+        }
+    }
+#endif
+
     env->ReleaseStringUTFChars(path, pathStr);
     
     if (handle != NULL) {
         const char* funcStr = env->GetStringUTFChars(funcName, NULL);
-        code = new NativeCode(handle, (ANativeActivity_createFunc*)
+        ALOGD("func name = %s.\n",funcStr);
+#ifdef WITH_HOUDINI
+        if(houdiniUsed) {
+            code = new NativeCode(handle, (ANativeActivity_createFunc*)
+                gHoudini.houdiniDlsym(handle, funcStr));
+        }
+        else {
+#endif
+            code = new NativeCode(handle, (ANativeActivity_createFunc*)
                 dlsym(handle, funcStr));
-        env->ReleaseStringUTFChars(funcName, funcStr);
+#ifdef WITH_HOUDINI
+        }
+#endif
+
         
         if (code->createActivityFunc == NULL) {
             ALOGW("ANativeActivity_onCreate not found");
@@ -684,13 +798,30 @@ loadNativeCode_native(JNIEnv* env, jobject clazz, jstring path, jstring funcName
             rawSavedSize = env->GetArrayLength(savedState);
         }
 
-        code->createActivityFunc(code, rawSavedState, rawSavedSize);
+#ifdef WITH_HOUDINI
+        if(houdiniUsed) {
+            /*
+             * If houdini is used, code is used by x86 code. So we create
+             * a houdini version for code. x86 version will store peer's
+             * pointer in houdiniNativeActivity each other.
+             */
+            code->houdiniNativeActivity = new ANativeActivity;
+            *code->houdiniNativeActivity = *(ANativeActivity *)code;
+            gHoudini.houdiniCreateActivity((void*)code->createActivityFunc,(void *)code,(void *)code->houdiniNativeActivity,(void *)rawSavedState,(void *)rawSavedSize);
+        } else {
+#endif
+            code->createActivityFunc(code, rawSavedState, rawSavedSize);
+#ifdef WITH_HOUDINI
+        }
+#endif
+
+        env->ReleaseStringUTFChars(funcName, funcStr);
 
         if (rawSavedState != NULL) {
             env->ReleaseByteArrayElements(savedState, rawSavedState, 0);
         }
     }
-    
+
     return (jint)code;
 }
 
