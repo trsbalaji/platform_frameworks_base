@@ -3890,6 +3890,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         mOrientationListener.setCurrentRotation(rotation);
     }
 
+    @Override
+    public boolean canDetectOrientation() {
+        return mOrientationListener.canDetectOrientation();
+    }
+
     private boolean isLandscapeOrSeascape(int rotation) {
         return rotation == mLandscapeRotation || rotation == mSeascapeRotation;
     }

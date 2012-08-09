@@ -73,6 +73,11 @@ public class BridgeWindowManager implements IWindowManager {
     }
 
     @Override
+    public boolean canDetectOrientation() throws RemoteException {
+        return false;
+    }
+
+    @Override
     public int getMaximumSizeDimension() throws RemoteException {
         return 0;
     }
