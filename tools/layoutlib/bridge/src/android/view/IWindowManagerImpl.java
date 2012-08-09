@@ -80,6 +80,11 @@ public class IWindowManagerImpl implements IWindowManager {
     }
 
     @Override
+    public boolean canDetectOrientation() throws RemoteException {
+        return false;
+    }
+
+    @Override
     public boolean hasSystemNavBar() throws RemoteException {
         return mHasSystemNavBar;
     }
