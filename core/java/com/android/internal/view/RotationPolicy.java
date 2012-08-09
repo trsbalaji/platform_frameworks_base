@@ -48,7 +48,8 @@ public final class RotationPolicy {
      * settings.
      */
     public static boolean isRotationLockToggleSupported(Context context) {
-        return context.getResources().getConfiguration().smallestScreenWidthDp >= 600;
+        return context.getResources().getConfiguration().smallestScreenWidthDp >= 600
+                && canDetectOrientation(context);
     }
 
     /**
@@ -75,17 +76,27 @@ public final class RotationPolicy {
      * Should be used by the rotation lock toggle.
      */
     public static void setRotationLock(Context context, final boolean enabled) {
-        Settings.System.putIntForUser(context.getContentResolver(),
-                Settings.System.HIDE_ROTATION_LOCK_TOGGLE_FOR_ACCESSIBILITY, 0,
-                UserHandle.USER_CURRENT);
+        setRotationLock(context, enabled, -1);
+    }
 
+    /**
+     * Enables or disables rotation lock.
+     *
+     * Should be used by the rotation lock toggle.
+     * @param rotation When enabling lock, what rotation should be locked to
+     * (-1 for current user rotation)
+     */
+    public static void setRotationLock(Context context, final boolean enabled,
+            final int rotation) {
+        Settings.System.putInt(context.getContentResolver(),
+                Settings.System.HIDE_ROTATION_LOCK_TOGGLE_FOR_ACCESSIBILITY, 0);
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     IWindowManager wm = WindowManagerGlobal.getWindowManagerService();
                     if (enabled) {
-                        wm.freezeRotation(-1);
+                        wm.freezeRotation(rotation);
                     } else {
                         wm.thawRotation();
                     }
@@ -94,6 +105,20 @@ public final class RotationPolicy {
                 }
             }
         });
+    }
+
+    /**
+     * Returns true if system can detect physical orientation changes
+     */
+    public static boolean canDetectOrientation(Context context) {
+        try {
+            IWindowManager wm = IWindowManager.Stub.asInterface(
+                    ServiceManager.getService(Context.WINDOW_SERVICE));
+            return wm.canDetectOrientation();
+        } catch (RemoteException exc) {
+            Log.w(TAG, "Unable to detect orientation capability from window manager");
+        }
+        return false;
     }
 
     /**

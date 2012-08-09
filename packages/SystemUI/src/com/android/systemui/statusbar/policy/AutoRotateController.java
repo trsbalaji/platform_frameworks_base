@@ -53,7 +53,7 @@ public final class AutoRotateController implements CompoundButton.OnCheckedChang
     public void onCheckedChanged(CompoundButton view, boolean checked) {
         if (checked != mAutoRotation) {
             mAutoRotation = checked;
-            RotationPolicy.setRotationLock(mContext, !checked);
+            RotationPolicy.setRotationLock(mContext, !checked, -1);
         }
     }
 

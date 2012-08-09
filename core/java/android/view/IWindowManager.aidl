@@ -163,6 +163,11 @@ interface IWindowManager
     int getRotation();
 
     /**
+     * Return true if the window manager capable of sensing device rotation
+     */
+    boolean canDetectOrientation();
+
+    /**
      * Watch the rotation of the screen.  Returns the current rotation,
      * calls back when it changes.
      */

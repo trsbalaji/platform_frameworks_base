@@ -5984,6 +5984,15 @@ public class WindowManagerService extends IWindowManager.Stub
     }
 
     /**
+     * Is the window manager capable of detecting rotation changes?
+     *
+     * @return true if rotation changes can be detected
+     */
+    public boolean canDetectOrientation() {
+        return mPolicy.canDetectOrientation();
+    }
+
+    /**
      * Recalculate the current rotation.
      *
      * Called by the window manager policy whenever the state of the system changes

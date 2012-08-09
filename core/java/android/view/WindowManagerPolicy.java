@@ -1018,6 +1018,14 @@ public interface WindowManagerPolicy {
     public void setRotationLw(int rotation);
 
     /**
+     * Called by WindowManagerService when it wants to know if we can detect
+     * orientation changes.
+     *
+     * @return True if the orientation can be detected
+     */
+    public boolean canDetectOrientation();
+
+    /**
      * Called when the system is mostly done booting to set whether
      * the system should go into safe mode.
      */
