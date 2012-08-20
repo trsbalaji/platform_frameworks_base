@@ -100,6 +100,7 @@ import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.WorkSource;
+import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.EventLog;
@@ -7233,6 +7234,9 @@ public class WindowManagerService extends IWindowManager.Stub
                 InputManagerService.BTN_MOUSE);
         int volumeDownState = mInputManager.getKeyCodeState(-1, InputDevice.SOURCE_ANY,
                 KeyEvent.KEYCODE_VOLUME_DOWN);
+        int volumeUpState = mInputManager.getKeyCodeState(-1, InputDevice.SOURCE_ANY,
+                KeyEvent.KEYCODE_VOLUME_UP);
+        boolean recoverymagic = SystemProperties.getBoolean("ro.recoverymagic", false);
         mSafeMode = menuState > 0 || sState > 0 || dpadState > 0 || trackballState > 0
                 || volumeDownState > 0;
         try {
@@ -7249,6 +7253,20 @@ public class WindowManagerService extends IWindowManager.Stub
             Log.i(TAG, "SAFE MODE not enabled");
         }
         mPolicy.setSafeMode(mSafeMode);
+
+        /* Some platforms can't implement a magic key for Recovery mode in
+         * the bootloader. Do it here in userspace instead */
+        if (recoverymagic && volumeUpState > 0) {
+            /* Vibrate 3 times */
+            long[] pattern = {0, 200, 100, 200, 100, 200};
+            Vibrator vib = (Vibrator)mContext.getSystemService(Context.VIBRATOR_SERVICE);
+            vib.vibrate(pattern, -1);
+            try {
+                mPowerManager.lowLevelReboot("recovery");
+            } catch (IOException e) {
+                Log.e(TAG, "Couldn't reboot the device into recovery mode");
+            }
+        }
         return mSafeMode;
     }
 
