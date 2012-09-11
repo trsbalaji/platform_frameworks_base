@@ -622,7 +622,7 @@ void FontRenderer::cacheBitmap(const SkGlyph& glyph, CachedGlyphInfo* cachedGlyp
         return;
     }
     // If the glyph is too tall, don't cache it
-    if (glyph.fHeight + TEXTURE_BORDER_SIZE > mCacheLines[mCacheLines.size() - 1]->mMaxHeight) {
+    if (mCacheLines.size() != 0  && (glyph.fHeight + TEXTURE_BORDER_SIZE > mCacheLines[mCacheLines.size() - 1]->mMaxHeight)) {
         ALOGE("Font size to large to fit in cache. width, height = %i, %i",
                 (int) glyph.fWidth, (int) glyph.fHeight);
         return;
