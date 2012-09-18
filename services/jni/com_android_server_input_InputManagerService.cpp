@@ -85,6 +85,7 @@ static struct {
     jmethodID getPointerIcon;
     jmethodID getKeyboardLayoutOverlay;
     jmethodID getDeviceAlias;
+    jmethodID setInputDeviceDisabled;
 } gServiceClassInfo;
 
 static struct {
@@ -1292,6 +1293,13 @@ static void nativeMonitor(JNIEnv* env, jclass clazz, jint ptr) {
     im->getInputManager()->getDispatcher()->monitor();
 }
 
+static void nativeSetInputDeviceDisabled(JNIEnv* env,
+        jclass clazz, jint ptr, jint deviceId, jboolean disabled) {
+    NativeInputManager* im = reinterpret_cast<NativeInputManager*>(ptr);
+
+    im->getInputManager()->getReader()->setInputDeviceDisabled(deviceId, disabled);
+}
+
 // ----------------------------------------------------------------------------
 
 static JNINativeMethod gInputManagerMethods[] = {
@@ -1346,6 +1354,8 @@ static JNINativeMethod gInputManagerMethods[] = {
             (void*) nativeDump },
     { "nativeMonitor", "(I)V",
             (void*) nativeMonitor },
+    { "nativeSetInputDeviceDisabled", "(IIZ)V",
+            (void*) nativeSetInputDeviceDisabled },
 };
 
 #define FIND_CLASS(var, className) \
