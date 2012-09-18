@@ -288,6 +288,9 @@ public:
     virtual void vibrate(int32_t deviceId, const nsecs_t* pattern, size_t patternSize,
             ssize_t repeat, int32_t token) = 0;
     virtual void cancelVibrate(int32_t deviceId, int32_t token) = 0;
+
+    /* To control device whether it should propogate events to userspace */
+    virtual void setInputDeviceDisabled(int32_t deviceId, bool disabled) = 0;
 };
 
 
@@ -357,6 +360,7 @@ public:
     virtual void vibrate(int32_t deviceId, const nsecs_t* pattern, size_t patternSize,
             ssize_t repeat, int32_t token);
     virtual void cancelVibrate(int32_t deviceId, int32_t token);
+    virtual void setInputDeviceDisabled(int32_t deviceId, bool disabled);
 
 protected:
     // These members are protected so they can be instrumented by test cases.
@@ -474,6 +478,10 @@ public:
 
     inline bool isIgnored() { return mMappers.isEmpty(); }
 
+    inline bool isDisabled() { return mIsDisabled; }
+
+    inline void setDisabled(bool disabled) { mIsDisabled = disabled; }
+
     void dump(String8& dump);
     void addMapper(InputMapper* mapper);
     void configure(nsecs_t when, const InputReaderConfiguration* config, uint32_t changes);
@@ -539,6 +547,8 @@ private:
     int32_t getState(uint32_t sourceMask, int32_t code, GetStateFunc getStateFunc);
 
     PropertyMap mConfiguration;
+
+    bool mIsDisabled;
 };
 
 
