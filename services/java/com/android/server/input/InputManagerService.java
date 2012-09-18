@@ -1215,6 +1215,11 @@ public class InputManagerService extends IInputManager.Stub implements Watchdog.
     }
 
     // Native callback.
+    private void notifyTabletModeSwitchChanged(long whenNanos, boolean inTabletMode) {
+        mCallbacks.notifyTabletModeSwitchChanged(whenNanos, inTabletMode);
+    }
+
+    // Native callback.
     private void notifyInputChannelBroken(InputWindowHandle inputWindowHandle) {
         mCallbacks.notifyInputChannelBroken(inputWindowHandle);
     }
@@ -1399,6 +1404,8 @@ public class InputManagerService extends IInputManager.Stub implements Watchdog.
         public void notifyConfigurationChanged();
 
         public void notifyLidSwitchChanged(long whenNanos, boolean lidOpen);
+
+        public void notifyTabletModeSwitchChanged(long whenNanos, boolean inTabletMode);
 
         public void notifyInputChannelBroken(InputWindowHandle inputWindowHandle);
 
