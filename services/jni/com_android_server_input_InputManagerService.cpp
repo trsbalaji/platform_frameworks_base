@@ -64,6 +64,7 @@ static struct {
     jmethodID notifyConfigurationChanged;
     jmethodID notifyInputDevicesChanged;
     jmethodID notifyLidSwitchChanged;
+    jmethodID notifyTabletModeSwitchChanged;
     jmethodID notifyInputChannelBroken;
     jmethodID notifyANR;
     jmethodID filterInputEvent;
@@ -584,6 +585,12 @@ void NativeInputManager::notifySwitch(nsecs_t when, int32_t switchCode,
         env->CallVoidMethod(mServiceObj, gServiceClassInfo.notifyLidSwitchChanged,
                 when, switchValue == 0 /*lidOpen*/);
         checkAndClearExceptionFromCallback(env, "notifyLidSwitchChanged");
+        break;
+    case SW_TABLET_MODE:
+        // When switch value is set, the device is in tablet mode.
+        env->CallVoidMethod(mServiceObj, gServiceClassInfo.notifyTabletModeSwitchChanged,
+                when, switchValue == 1 /*in tablet mode*/);
+        checkAndClearExceptionFromCallback(env, "notifyTabletModeSwitchChanged");
         break;
     }
 }
@@ -1412,6 +1419,9 @@ int register_android_server_InputManager(JNIEnv* env) {
 
     GET_METHOD_ID(gServiceClassInfo.notifyLidSwitchChanged, clazz,
             "notifyLidSwitchChanged", "(JZ)V");
+
+    GET_METHOD_ID(gServiceClassInfo.notifyTabletModeSwitchChanged, clazz,
+            "notifyTabletModeSwitchChanged", "(JZ)V");
 
     GET_METHOD_ID(gServiceClassInfo.notifyInputChannelBroken, clazz,
             "notifyInputChannelBroken", "(Lcom/android/server/input/InputWindowHandle;)V");
