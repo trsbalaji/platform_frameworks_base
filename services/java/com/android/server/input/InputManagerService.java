@@ -146,6 +146,10 @@ public class InputManagerService extends IInputManager.Stub
     IInputFilter mInputFilter; // guarded by mInputFilterLock
     InputFilterHost mInputFilterHost; // guarded by mInputFilterLock
 
+    // Actions if tablet mode changes
+    private static final String TABLET_MODE_DISABLE_INPUT = "disable_input_name:";
+    private static final String TABLET_MODE_ENABLE_INPUT = "enable_input_name:";
+
     private static native int nativeInit(InputManagerService service,
             Context context, MessageQueue messageQueue);
     private static native void nativeStart(int ptr);
@@ -186,6 +190,8 @@ public class InputManagerService extends IInputManager.Stub
     private static native void nativeReloadDeviceAliases(int ptr);
     private static native String nativeDump(int ptr);
     private static native void nativeMonitor(int ptr);
+    private static native void nativeSetInputDeviceDisabled(int ptr, int deviceId,
+            boolean disabled);
 
     // Input event injection constants defined in InputDispatcher.h.
     private static final int INPUT_EVENT_INJECTION_SUCCEEDED = 0;
@@ -587,6 +593,21 @@ public class InputManagerService extends IInputManager.Stub
         synchronized (mInputDevicesLock) {
             return mInputDevices;
         }
+    }
+
+    /**
+     * Get the InputDevice by name of device.
+     * @return The InputDevice object.
+     */
+    private InputDevice getInputDeviceByName(String name) {
+        synchronized (mInputDevicesLock) {
+            for (InputDevice i: mInputDevices) {
+                if (i.getName().compareTo(name) == 0) {
+                    return i;
+                }
+            }
+        }
+        return null;
     }
 
     @Override // Binder call
@@ -1253,6 +1274,43 @@ public class InputManagerService extends IInputManager.Stub
         nativeMonitor(mPtr);
     }
 
+    private void onTabletModeSwitchChanged(boolean inTabletMode) {
+        String[] actions = null;
+        if (inTabletMode) {
+            actions = mContext.getResources().getStringArray(
+                    R.array.change_into_tablet_mode_actions);
+        } else {
+            actions = mContext.getResources().getStringArray(
+                    R.array.change_into_laptop_mode_actions);
+        }
+
+        if (actions != null) {
+            for (int i = 0; i < actions.length; i++) {
+                try {
+                    if ((actions[i] != null) && (actions[i].length() > 0)) {
+                        if (actions[i].startsWith(TABLET_MODE_DISABLE_INPUT)) {
+                            String[] parts = actions[i].split(":", 2);
+                            InputDevice dev = getInputDeviceByName(parts[1]);
+                            nativeSetInputDeviceDisabled(mPtr, dev.getId(), true);
+                        } else if (actions[i].startsWith(TABLET_MODE_ENABLE_INPUT)) {
+                            String[] parts = actions[i].split(":", 2);
+                            InputDevice dev = getInputDeviceByName(parts[1]);
+                            nativeSetInputDeviceDisabled(mPtr, dev.getId(), false);
+                        } else {
+                            if (DEBUG) {
+                                Slog.d(TAG, "unknown action for tablet mode change: " + actions[i]);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    if (DEBUG) {
+                        e.printStackTrace();
+                    }
+                }
+            } // for all actions[]
+        } // if action is not null
+    }
+
     // Native callback.
     private void notifyConfigurationChanged(long whenNanos) {
         mWindowManagerCallbacks.notifyConfigurationChanged();
@@ -1291,6 +1349,7 @@ public class InputManagerService extends IInputManager.Stub
         if ((switchMask & SW_TABLET_MODE_BIT) != 0) {
             final boolean tabletMode = ((switchValues & SW_TABLET_MODE_BIT) == 0);
             mWindowManagerCallbacks.notifyTabletModeSwitchChanged(whenNanos, tabletMode);
+            onTabletModeSwitchChanged(tabletMode);
         }
     }
 
