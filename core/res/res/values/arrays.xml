@@ -413,4 +413,28 @@
         <item>TUV</item><!-- 8 -->
         <item>WXYZ</item><!-- 9 -->
     </string-array>
+
+    <!--
+      Defines actions to be done when the device changes into tablet mode
+      (for convertible devices).
+
+      Actions are:
+      * disable_input_name:(name of input)
+        - To disable an input device so there is no input events from it
+      * enable_input_name:(name of input)
+        - To enable an input device
+
+      "(name of input)" is the name reported by Android.
+    -->
+    <string-array translatable="false" name="change_into_tablet_mode_actions">
+    </string-array>
+
+    <!--
+      Defines actions to be done when the device changes into laptop mode
+      (for convertible devices). Refer to the previous array for definition
+      of actions.
+    -->
+    <string-array translatable="false" name="change_into_laptop_mode_actions">
+    </string-array>
+
 </resources>
