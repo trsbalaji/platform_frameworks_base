@@ -3188,6 +3188,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         }
     }
 
+    /** {@inheritDoc} */
+    public void notifyTabletModeSwitchChanged(long whenNanos, boolean inTabletMode) {
+        // do nothing
+    }
+
     void setHdmiPlugged(boolean plugged) {
         if (mHdmiPlugged != plugged) {
             mHdmiPlugged = plugged;

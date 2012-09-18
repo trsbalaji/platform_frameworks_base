@@ -1495,6 +1495,7 @@ TEST_F(SwitchInputMapperTest, Process) {
     process(mapper, ARBITRARY_TIME, DEVICE_ID, EV_SW, SW_LID, 1);
     process(mapper, ARBITRARY_TIME, DEVICE_ID, EV_SW, SW_JACK_PHYSICAL_INSERT, 1);
     process(mapper, ARBITRARY_TIME, DEVICE_ID, EV_SW, SW_HEADPHONE_INSERT, 0);
+    process(mapper, ARBITRARY_TIME, DEVICE_ID, EV_SW, SW_TABLET_MODE, 0);
     process(mapper, ARBITRARY_TIME, DEVICE_ID, EV_SYN, SYN_REPORT, 0);
 
     NotifySwitchArgs args;
@@ -1502,6 +1503,8 @@ TEST_F(SwitchInputMapperTest, Process) {
     ASSERT_EQ(ARBITRARY_TIME, args.eventTime);
     ASSERT_EQ((1 << SW_LID) | (1 << SW_JACK_PHYSICAL_INSERT), args.switchValues);
     ASSERT_EQ((1 << SW_LID) | (1 << SW_JACK_PHYSICAL_INSERT) | (1 << SW_HEADPHONE_INSERT),
+            args.switchMask);
+    ASSERT_EQ((1 << SW_LID) | (1 << SW_JACK_PHYSICAL_INSERT) | (1 << SW_HEADPHONE_INSERT) | (1 << SW_TABLET_MODE),
             args.switchMask);
     ASSERT_EQ(uint32_t(0), args.policyFlags);
 }
