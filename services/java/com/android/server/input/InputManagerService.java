@@ -218,6 +218,9 @@ public class InputManagerService extends IInputManager.Stub
     /** Switch code: Lid switch.  When set, lid is shut. */
     public static final int SW_LID = 0x00;
 
+    /** Switch code: Tablet mode switch.  When set, device in tablet mode. */
+    public static final int SW_TABLET_MODE = 0x01;
+
     /** Switch code: Keypad slide.  When set, keyboard is exposed. */
     public static final int SW_KEYPAD_SLIDE = 0x0a;
 
@@ -231,6 +234,7 @@ public class InputManagerService extends IInputManager.Stub
     public static final int SW_JACK_PHYSICAL_INSERT = 0x07;
 
     public static final int SW_LID_BIT = 1 << SW_LID;
+    public static final int SW_TABLET_MODE_BIT = 1 << SW_TABLET_MODE;
     public static final int SW_KEYPAD_SLIDE_BIT = 1 << SW_KEYPAD_SLIDE;
     public static final int SW_HEADPHONE_INSERT_BIT = 1 << SW_HEADPHONE_INSERT;
     public static final int SW_MICROPHONE_INSERT_BIT = 1 << SW_MICROPHONE_INSERT;
@@ -1283,6 +1287,11 @@ public class InputManagerService extends IInputManager.Stub
             mWiredAccessoryCallbacks.notifyWiredAccessoryChanged(whenNanos, switchValues,
                     switchMask);
         }
+
+        if ((switchMask & SW_TABLET_MODE_BIT) != 0) {
+            final boolean tabletMode = ((switchValues & SW_TABLET_MODE_BIT) == 0);
+            mWindowManagerCallbacks.notifyTabletModeSwitchChanged(whenNanos, tabletMode);
+        }
     }
 
     // Native callback.
@@ -1473,6 +1482,8 @@ public class InputManagerService extends IInputManager.Stub
         public void notifyConfigurationChanged();
 
         public void notifyLidSwitchChanged(long whenNanos, boolean lidOpen);
+
+        public void notifyTabletModeSwitchChanged(long whenNanos, boolean inTabletMode);
 
         public void notifyInputChannelBroken(InputWindowHandle inputWindowHandle);
 
