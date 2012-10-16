@@ -99,7 +99,7 @@ import java.util.List;
  */
 public class WifiP2pService extends IWifiP2pManager.Stub {
     private static final String TAG = "WifiP2pService";
-    private static final boolean DBG = false;
+    private static final boolean DBG = true;
     private static final String NETWORKTYPE = "WIFI_P2P";
 
     private Context mContext;
@@ -1194,7 +1194,7 @@ public class WifiP2pService extends IWifiP2pManager.Stub {
                     if (mGroup.isGroupOwner()) {
                         stopDhcpServer();
                     } else {
-                        if (DBG) logd("stop DHCP client");
+                        if (DBG) logd("Wifi P2P service: stop DHCP client, send CMD_STOP_DHCP msg !!!\n");
                         mDhcpStateMachine.sendMessage(DhcpStateMachine.CMD_STOP_DHCP);
                         mDhcpStateMachine.quit();
                         mDhcpStateMachine = null;

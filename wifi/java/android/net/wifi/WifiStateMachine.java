@@ -108,7 +108,7 @@ public class WifiStateMachine extends StateMachine {
 
     private static final String TAG = "WifiStateMachine";
     private static final String NETWORKTYPE = "WIFI";
-    private static final boolean DBG = false;
+    private static final boolean DBG = true;
 
     /* TODO: This is no more used with the hostapd code. Clean up */
     private static final String SOFTAP_IFACE = "wl0.1";
@@ -1649,7 +1649,7 @@ public class WifiStateMachine extends StateMachine {
             /* In case we were in middle of DHCP operation
                restore back powermode */
             handlePostDhcpSetup();
-
+            if (DBG) log("Send CMD_STOP_DHCP msg !!!\n");
             mDhcpStateMachine.sendMessage(DhcpStateMachine.CMD_STOP_DHCP);
             mDhcpStateMachine.quit();
             mDhcpStateMachine = null;
@@ -2357,6 +2357,7 @@ public class WifiStateMachine extends StateMachine {
                     mWifiNative.killSupplicant();
                     mWifiNative.closeSupplicantConnection();
                     mNetworkInfo.setIsAvailable(false);
+                    if (DBG) log(getName() + "call handleNetworkDisconnect stab 5 !!!\n");
                     handleNetworkDisconnect();
                     sendSupplicantConnectionChangedBroadcast(false);
                     mSupplicantStateTracker.sendMessage(CMD_RESET_SUPPLICANT_STATE);
@@ -2469,7 +2470,7 @@ public class WifiStateMachine extends StateMachine {
     class SupplicantStoppingState extends State {
         @Override
         public void enter() {
-            if (DBG) log(getName() + "\n");
+            if (DBG) log(getName() + "call handleNetworkDisconnect stab 1 !!!\n");
             EventLog.writeEvent(EVENTLOG_WIFI_STATE_CHANGED, getName());
 
             /* Send any reset commands to supplicant before shutting it down */
@@ -2740,6 +2741,7 @@ public class WifiStateMachine extends StateMachine {
                     if (message.arg1 != mDelayedStopCounter) break;
                     if (getCurrentState() != mDisconnectedState) {
                         mWifiNative.disconnect();
+                        if (DBG) log(getName() + "call handleNetworkDisconnect stab 4 !!!\n");
                         handleNetworkDisconnect();
                     }
                     mWakeLock.acquire();
@@ -2923,6 +2925,7 @@ public class WifiStateMachine extends StateMachine {
                     // We detect the interface going down and recover from it
                     if (!SupplicantState.isDriverActive(state)) {
                         if (mNetworkInfo.getState() != NetworkInfo.State.DISCONNECTED) {
+                            if (DBG) log(getName() + "call handleNetworkDisconnect stab 2 !!!\n");
                             handleNetworkDisconnect();
                         }
                         log("Detected an interface down, restart driver");
@@ -2938,7 +2941,7 @@ public class WifiStateMachine extends StateMachine {
                     // disconnected, we need to handle a disconnection
                     if (state == SupplicantState.DISCONNECTED &&
                             mNetworkInfo.getState() != NetworkInfo.State.DISCONNECTED) {
-                        if (DBG) log("Missed CTRL-EVENT-DISCONNECTED, disconnect");
+                        if (DBG) log("Missed CTRL-EVENT-DISCONNECTED, disconnect stab 7 !!!\n");
                         handleNetworkDisconnect();
                         transitionTo(mDisconnectedState);
                     }
@@ -3026,7 +3029,7 @@ public class WifiStateMachine extends StateMachine {
                     transitionTo(mObtainingIpState);
                     break;
                 case WifiMonitor.NETWORK_DISCONNECTION_EVENT:
-                    if (DBG) log("Network connection lost");
+                    if (DBG) log("Network connection lost stab 8 !!!\n");
                     handleNetworkDisconnect();
                     transitionTo(mDisconnectedState);
                     break;
@@ -3316,6 +3319,7 @@ public class WifiStateMachine extends StateMachine {
                      * and handle the rest of the events there
                      */
                     deferMessage(message);
+                    if (DBG) log(getName() + "call handleNetworkDisconnect stab 3 !!!\n");
                     handleNetworkDisconnect();
                     transitionTo(mDisconnectedState);
                     break;
@@ -3532,7 +3536,10 @@ public class WifiStateMachine extends StateMachine {
                     deferMessage(message);
                     break;
                 case WifiMonitor.NETWORK_DISCONNECTION_EVENT:
-                    if (DBG) log("Network connection lost");
+                    if (DBG) {
+                        log("Network connection lost");
+                        log(getName() + "call handleNetworkDisconnect stab 6 !!!\n");
+                    }
                     handleNetworkDisconnect();
                     break;
                 case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT:

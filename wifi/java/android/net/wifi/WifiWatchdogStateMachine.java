@@ -89,7 +89,7 @@ import java.net.URL;
 public class WifiWatchdogStateMachine extends StateMachine {
 
     /* STOPSHIP: Keep this configurable for debugging until ship */
-    private static boolean DBG = false;
+    private static boolean DBG = true;
     private static final String TAG = "WifiWatchdogStateMachine";
     private static final String WALLED_GARDEN_NOTIFICATION_ID = "WifiWatchdog.walledgarden";
 
