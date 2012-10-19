@@ -50,7 +50,7 @@ import android.util.Log;
 public class DhcpStateMachine extends StateMachine {
 
     private static final String TAG = "DhcpStateMachine";
-    private static final boolean DBG = false;
+    private static final boolean DBG = true;
 
 
     /* A StateMachine that controls the DhcpStateMachine */
@@ -172,6 +172,15 @@ public class DhcpStateMachine extends StateMachine {
      */
     public void doQuit() {
         quit();
+    }
+
+    /**
+     * Quit the DhcpStateMachine Now.
+     *
+     * @hide
+     */
+    public void doQuitNow() {
+        quitNow();
     }
 
     protected void onQuitting() {

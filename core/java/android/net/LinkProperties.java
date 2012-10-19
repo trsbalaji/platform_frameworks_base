@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 /**
  * Describes the properties of a network link.
@@ -180,6 +181,13 @@ public class LinkProperties implements Parcelable {
         return mLinkAddresses.remove(toRemove);
     }
 
+    public void setLinkAddress(LinkAddress address) {
+        if (address != null) {
+            mLinkAddresses.clear();
+            addLinkAddress(address);
+        }
+    }
+
     /**
      * Returns all the addresses on this link.
      */
@@ -240,6 +248,10 @@ public class LinkProperties implements Parcelable {
             mIfaceName);
     }
 
+    public void setDnses(Collection<InetAddress> dnses) {
+        mDnses =  dnses;
+    }
+
     public void addRoute(RouteInfo route) {
         if (route != null) {
             String routeIface = route.getInterface();
@@ -249,6 +261,16 @@ public class LinkProperties implements Parcelable {
                    " vs. " + mIfaceName);
             }
             mRoutes.add(routeWithInterface(route));
+        }
+    }
+
+    public void setDefaultGateway(InetAddress gw) {
+        Iterator<RouteInfo> iter = mRoutes.iterator();
+        while (iter.hasNext()) {
+            RouteInfo route = iter.next();
+            if (route.isDefaultRoute()) {
+                iter.remove();
+            }
         }
     }
 
