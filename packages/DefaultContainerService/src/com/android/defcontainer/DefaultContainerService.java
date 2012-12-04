@@ -400,7 +400,7 @@ public class DefaultContainerService extends IntentService {
         final File sharedLibraryDir = new File(newCachePath, LIB_DIR_NAME);
         if (sharedLibraryDir.mkdir()) {
             int ret = NativeLibraryHelper.copyNativeBinariesIfNeededLI(codeFile, sharedLibraryDir);
-            if (ret != PackageManager.INSTALL_SUCCEEDED) {
+            if ((ret != PackageManager.INSTALL_SUCCEEDED) && (ret != PackageManager.INSTALL_ABI2_SUCCEEDED)) {
                 Slog.e(TAG, "Could not copy native libraries to " + sharedLibraryDir.getPath());
                 PackageHelper.destroySdDir(newCid);
                 return null;
