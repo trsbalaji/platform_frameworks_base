@@ -235,6 +235,10 @@ class QuickSettingsModel implements BluetoothStateChangeCallback,
     private RefreshCallback mSettingsCallback;
     private State mSettingsState = new State();
 
+    private QuickSettingsTileView mPowerOffTile;
+    private RefreshCallback mPowerOffCallback;
+    private State mPowerOffState = new State();
+
     public QuickSettingsModel(Context context) {
         mContext = context;
         mHandler = new Handler();
@@ -714,4 +718,18 @@ class QuickSettingsModel implements BluetoothStateChangeCallback,
         onNextAlarmChanged();
         onBugreportChanged();
     }
+
+    // Power off
+    void addPowerOffTile(QuickSettingsTileView view, RefreshCallback cb) {
+        mPowerOffTile = view;
+        mPowerOffCallback = cb;
+        refreshPowerOffTile();
+    }
+    void refreshPowerOffTile() {
+        Resources r = mContext.getResources();
+        mPowerOffState.label = r.getString(R.string.quick_settings_poweroff_label);
+        mPowerOffCallback.refreshView(mPowerOffTile, mPowerOffState);
+    }
+
+
 }
