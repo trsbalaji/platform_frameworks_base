@@ -486,7 +486,8 @@ class QuickSettings {
         }
 
         // Rotation Lock
-        if (mContext.getResources().getBoolean(R.bool.quick_settings_show_rotation_lock)) {
+        if (mContext.getResources().getBoolean(R.bool.quick_settings_show_rotation_lock) &&
+            RotationPolicy.canDetectOrientation(mContext)) {
             QuickSettingsTileView rotationLockTile = (QuickSettingsTileView)
                     inflater.inflate(R.layout.quick_settings_tile, parent, false);
             rotationLockTile.setContent(R.layout.quick_settings_tile_rotation_lock, inflater);
