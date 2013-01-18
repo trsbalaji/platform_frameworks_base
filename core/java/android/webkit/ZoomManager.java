@@ -1228,6 +1228,10 @@ class ZoomManager {
         }
     }
 
+    public float getDisplayDensity()
+    {
+        return mDisplayDensity;
+    }
     /**
      * The embedded zoom control intercepts touch events and automatically stays
      * visible. The external control needs to constantly refresh its internal

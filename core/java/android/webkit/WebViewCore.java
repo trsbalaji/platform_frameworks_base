@@ -2543,6 +2543,7 @@ public final class WebViewCore {
         mWebViewClassic.mPrivateHandler.removeMessages(
                 WebViewClassic.UPDATE_ZOOM_DENSITY);
         if (adjust != mWebViewClassic.getDefaultZoomScale()) {
+            adjust = mWebViewClassic.getDefaultZoomScale();
             Message.obtain(mWebViewClassic.mPrivateHandler,
                     WebViewClassic.UPDATE_ZOOM_DENSITY, adjust).sendToTarget();
         }
@@ -2749,6 +2750,9 @@ public final class WebViewCore {
                 // Let webkit know the scale and inner width/height immediately
                 // in viewport setup time to avoid wrong information.
                 viewSizeChanged(data);
+                if (mWebViewClassic != null){
+                    mWebViewClassic.applyDefaultZoomDensity();
+                }
             }
         }
     }
