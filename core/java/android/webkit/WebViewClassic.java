@@ -1819,6 +1819,11 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
         mZoomManager.updateDefaultZoomDensity(density);
     }
 
+    void applyDefaultZoomDensity()
+    {
+        mZoomManager.updateDefaultZoomDensity(mZoomManager.getDisplayDensity());
+    }
+
     /* package */ int getScaledNavSlop() {
         return viewToContentDimension(mNavSlop);
     }
