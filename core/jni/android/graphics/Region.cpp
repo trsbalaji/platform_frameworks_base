@@ -44,9 +44,10 @@ static void Region_destructor(JNIEnv* env, jobject, SkRegion* region) {
     delete region;
 }
 
-static void Region_setRegion(JNIEnv* env, jobject, SkRegion* dst, const SkRegion* src) {
+static jboolean  Region_setRegion(JNIEnv* env, jobject, SkRegion* dst, const SkRegion* src) {
     SkASSERT(dst && src);
     *dst = *src;
+    return JNI_TRUE;
 }
 
 static jboolean Region_setRect(JNIEnv* env, jobject, SkRegion* dst, int left, int top, int right, int bottom) {
