@@ -7022,13 +7022,9 @@ public class WindowManagerService extends IWindowManager.Stub
 
             // Determine whether a hard keyboard is available and enabled.
             boolean hardKeyboardAvailable = config.keyboard != Configuration.KEYBOARD_NOKEYS;
-	    boolean hardKeyboardOverride = SystemProperties.getBoolean("ro.hardKeyboardOverride", false);
             if (hardKeyboardAvailable != mHardKeyboardAvailable) {
                 mHardKeyboardAvailable = hardKeyboardAvailable;
-		if (hardKeyboardOverride)
-		    mHardKeyboardEnabled = false;
-		else
-		    mHardKeyboardEnabled = hardKeyboardAvailable;
+                mHardKeyboardEnabled = hardKeyboardAvailable;
                 mH.removeMessages(H.REPORT_HARD_KEYBOARD_STATUS_CHANGE);
                 mH.sendEmptyMessage(H.REPORT_HARD_KEYBOARD_STATUS_CHANGE);
             }
