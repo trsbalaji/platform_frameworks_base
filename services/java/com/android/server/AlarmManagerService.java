@@ -78,6 +78,7 @@ class AlarmManagerService extends IAlarmManager.Stub {
     private static final boolean localLOGV = false;
     private static final int ALARM_EVENT = 1;
     private static final String TIMEZONE_PROPERTY = "persist.sys.timezone";
+    private static final String RTC_LOCAL_TIME_PROP = "ro.rtc_local_time";
     
     private static final Intent mBackgroundIntent
             = new Intent().addFlags(Intent.FLAG_FROM_BACKGROUND);
@@ -313,6 +314,9 @@ class AlarmManagerService extends IAlarmManager.Stub {
                 // Kernel tracks time offsets as 'minutes west of GMT'
                 int gmtOffset = zone.getOffset(System.currentTimeMillis());
                 setKernelTimezone(mDescriptor, -(gmtOffset / 60000));
+                // For ro.rtc_local_time =1, sync local time to rtc since timezone changed.
+                if (SystemProperties.getInt(RTC_LOCAL_TIME_PROP, 0) == 1)
+                    setTime(System.currentTimeMillis());
             }
 
             TimeZone.setDefault(null);
@@ -951,6 +955,9 @@ class AlarmManagerService extends IAlarmManager.Stub {
                 TimeZone zone = TimeZone.getTimeZone(SystemProperties.get(TIMEZONE_PROPERTY));
                 int gmtOffset = zone.getOffset(System.currentTimeMillis());
                 setKernelTimezone(mDescriptor, -(gmtOffset / 60000));
+                // For ro.rtc_local_time =1, sync local time to rtc since timezone changed.
+                if (SystemProperties.getInt(RTC_LOCAL_TIME_PROP, 0) == 1)
+                    setTime(System.currentTimeMillis());
             	scheduleDateChangedEvent();
             }
         }
