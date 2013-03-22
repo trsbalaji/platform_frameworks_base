@@ -41,12 +41,14 @@ public class xmlCheckExt implements ICheckExt {
 
     public boolean doCheck(String... params) {
         String param = null;
+        String param_tag = null;
         try {
             int eventType;
             String tag;
             if (params.length == 0)
                 return false;
             param = params[0];
+            param_tag = params[1];
             XmlPullParser xmlParser = Xml.newPullParser();
             File file = new File(CHECKXMLPATH);
             if (!file.exists())
@@ -83,7 +85,7 @@ public class xmlCheckExt implements ICheckExt {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        return checkPkgName(param);
+        return checkPkgName(param, param_tag);
     }
 
     /*Function:checkTag
@@ -103,8 +105,12 @@ public class xmlCheckExt implements ICheckExt {
         return true;
     }
 
-    boolean checkPkgName(String pkgName) {
-        return mMap.containsKey(pkgName);
+    boolean checkPkgName(String pkgName, String tag) {
+        String value = mMap.get(pkgName);
+        if (value == null)
+            return false;
+        else
+            return value.equals(tag);
     }
 
 }

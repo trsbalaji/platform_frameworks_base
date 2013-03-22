@@ -418,6 +418,8 @@ public class PackageManagerService extends IPackageManager.Stub {
 
     // Packages that have been installed with library matching 2nd ABI.
     final HashMap<Integer, String> mPackagesMatchABI2 = new HashMap<Integer,String>();
+    // Packages that have been installed with library matching 2nd ABI and matching neon app list
+    final HashMap<Integer, String> mPackagesMatchABI2Neon = new HashMap<Integer,String>();
 
     static final int SEND_PENDING_BROADCAST = 1;
     static final int MCS_BOUND = 3;
@@ -3572,7 +3574,7 @@ public class PackageManagerService extends IPackageManager.Stub {
         return new File(mUserAppDataDir.getAbsolutePath() + File.separator + userId);
     }
 
-    private void writeAppwithABI2() {
+    private void writeAppwithABI2Internal(String fileName, HashMap<Integer, String> map) {
         File outputFile;
         FileOutputStream out = null;
         File appDataDir = new File("/data/data");
@@ -3580,7 +3582,7 @@ public class PackageManagerService extends IPackageManager.Stub {
         try {
             File tempFile = File.createTempFile("tmp", "tmp", appDataDir);
             String tempFilePath = tempFile.getPath();
-            outputFile = new File("/data/data/.appwithABI2");
+            outputFile = new File(fileName);
             if (FileUtils.setPermissions(tempFilePath,
                 FileUtils.S_IRUSR | FileUtils.S_IWUSR |
                 FileUtils.S_IRGRP | FileUtils.S_IROTH, -1, -1) != 0
@@ -3589,7 +3591,7 @@ public class PackageManagerService extends IPackageManager.Stub {
             }
             out = new FileOutputStream(outputFile);
             Iterator<HashMap.Entry<Integer, String>>
-            it = mPackagesMatchABI2.entrySet().iterator();
+            it = map.entrySet().iterator();
             while (it.hasNext()) {
                 HashMap.Entry<Integer, String> ent = it.next();
                 int userID = ent.getKey().intValue();
@@ -3600,15 +3602,23 @@ public class PackageManagerService extends IPackageManager.Stub {
                 Slog.i(TAG, "Data written:"+ userID);
             }
         } catch (Exception e) {
-            Slog.e(TAG, "File Access Error: Not Able to write Data into /data/data/.appwithABI2");
+            Slog.e(TAG, "File Access Error: Not Able to write Data into " + fileName);
         } finally {
             try {
                 if (out != null) {
                     out.close();
-                    Slog.i(TAG, "Data written into /data/data/.appwithABI2");
+                    Slog.i(TAG, "Data written into " + fileName);
                 }
             } catch (IOException e) {}
         }
+    }
+
+    private void writeAppwithABI2() {
+        writeAppwithABI2Internal(new String("/data/data/.appwithABI2"), mPackagesMatchABI2);
+    }
+
+    private void writeAppwithABI2Neon() {
+        writeAppwithABI2Internal(new String("/data/data/.appwithABI2neon"), mPackagesMatchABI2Neon);
     }
 
     private File getDataPathForPackage(String packageName, int userId) {
@@ -3862,7 +3872,7 @@ public class PackageManagerService extends IPackageManager.Stub {
 
                     if (result == PackageManager.INSTALL_ABI2_SUCCEEDED) {
                         ICheckExt check = new CheckExt();
-                        if(check.doCheck(pkg.packageName)){
+                        if(check.doCheck(pkg.packageName, new String("filter"))){
                             Slog.i(TAG, "Reject application in black list::" + pkg.packageName);
                             mLastScanError = PackageManager.INSTALL_FAILED_INVALID_APK;
                             return null;
@@ -4178,10 +4188,14 @@ public class PackageManagerService extends IPackageManager.Stub {
                                     Slog.i(TAG, "Replace package with primary ABI Library");
                                     mPackagesMatchABI2.remove(pkgUidInt);
                                     writeAppwithABI2();
+                                    if (mPackagesMatchABI2Neon.containsKey(pkgUidInt)) {
+                                        mPackagesMatchABI2Neon.remove(pkgUidInt);
+                                        writeAppwithABI2Neon();
+                                    }
                                 }
                             } else if (copyRet == PackageManager.INSTALL_ABI2_SUCCEEDED) {
                                 ICheckExt check = new CheckExt();
-                                if(check.doCheck(pkgName)) {
+                                if(check.doCheck(pkgName, new String("filter"))) {
                                     Slog.i(TAG, "Package with second ABI is in black list: " + pkgUidInt + pkg.applicationInfo.processName);
                                     mLastScanError = PackageManager.INSTALL_FAILED_INVALID_APK;
                                     return null;
@@ -4189,6 +4203,10 @@ public class PackageManagerService extends IPackageManager.Stub {
                                 Slog.i(TAG, "Package installed with second ABI Library: " + pkgUidInt + pkg.applicationInfo.processName);
                                 mPackagesMatchABI2.put(pkgUidInt, pkg.applicationInfo.processName);
                                 writeAppwithABI2();
+                                if (check.doCheck(pkgName, new String("neon"))) {
+                                    mPackagesMatchABI2Neon.put(pkgUidInt, pkg.applicationInfo.processName);
+                                    writeAppwithABI2Neon();
+                                }
                             } else {
                                 Slog.e(TAG, "Unable to copy native libraries");
                                 mLastScanError = PackageManager.INSTALL_FAILED_INTERNAL_ERROR;
@@ -4601,10 +4619,15 @@ public class PackageManagerService extends IPackageManager.Stub {
                 cleanPackageDataStructuresLILPw(pkg, chatty);
 
                 String abi2 = SystemProperties.get("ro.product.cpu.abi2");
-                if (abi2.length() != 0 && mPackagesMatchABI2.containsKey(new Integer(pkg.applicationInfo.uid))) {
+                Integer pkgUidInt = new Integer(pkg.applicationInfo.uid);
+                if (abi2.length() != 0 && mPackagesMatchABI2.containsKey(pkgUidInt)) {
                     Slog.i(TAG, "Uninstall package with second ABI Library");
-                    mPackagesMatchABI2.remove(new Integer(pkg.applicationInfo.uid));
+                    mPackagesMatchABI2.remove(pkgUidInt);
                     writeAppwithABI2();
+                    if (mPackagesMatchABI2Neon.containsKey(pkgUidInt)) {
+                        mPackagesMatchABI2Neon.remove(pkgUidInt);
+                        writeAppwithABI2Neon();
+                    }
                 }
 
             }
@@ -4630,6 +4653,10 @@ public class PackageManagerService extends IPackageManager.Stub {
                 Slog.i(TAG, "Uninstall package with second ABI Library");
                 mPackagesMatchABI2.remove(new Integer(pkg.applicationInfo.uid));
                 writeAppwithABI2();
+                if (mPackagesMatchABI2Neon.containsKey(new Integer(pkg.applicationInfo.uid))) {
+                    mPackagesMatchABI2Neon.remove(new Integer(pkg.applicationInfo.uid));
+                    writeAppwithABI2Neon();
+                }
             }
 
         }
