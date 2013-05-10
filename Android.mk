@@ -713,11 +713,14 @@ $(full_target): framework-res-package-target
 
 include $(CLEAR_VARS)
 #
+ifneq ($(wildcard ../../vendor/unbundled_google/libs/gcm/),)
 gcm_docs_src_files += \
         $(call all-java-files-under, ../../vendor/unbundled_google/libs/gcm/gcm-client/src) \
         $(call all-java-files-under, ../../vendor/unbundled_google/libs/gcm/gcm-server/src) \
         $(call all-html-files-under, ../../vendor/unbundled_google/libs/gcm/gcm-client/src) \
         $(call all-html-files-under, ../../vendor/unbundled_google/libs/gcm/gcm-server/src) \
+
+endif
 
 LOCAL_SRC_FILES := $(gcm_docs_src_files)
 LOCAL_MODULE_TAGS := optional
