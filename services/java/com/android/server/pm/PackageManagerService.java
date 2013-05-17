@@ -1432,6 +1432,42 @@ public class PackageManagerService extends IPackageManager.Stub {
         final File permFile = new File(Environment.getRootDirectory(),
                 "etc/permissions/platform.xml");
         readPermissionsFromXml(permFile);
+
+        // Update permissions based on system properties
+        updatePermissionsFromSystemProperties();
+    }
+
+    private void updatePermissionsFromSystemProperties() {
+        String feature;
+        int index;
+
+        // Remove features specified as not present
+        index = 0;
+        while (true) {
+           feature = SystemProperties.get("ro.sys.pm.feature.exclude."
+                       + index++);
+           if (feature.length() > 0) {
+               mAvailableFeatures.remove(feature);
+               Log.i(TAG, "Excluding feature " + feature);
+           } else {
+               break;
+           }
+        }
+
+        // Add features specified as present
+        index = 0;
+        while (true) {
+           feature = SystemProperties.get("ro.sys.pm.feature.include."
+                       + index++);
+           if (feature.length() > 0) {
+               FeatureInfo fi = new FeatureInfo();
+               fi.name = feature;
+               mAvailableFeatures.put(feature, fi);
+               Log.i(TAG, "Including feature " + feature);
+           } else {
+               break;
+           }
+        }
     }
 
     private void readPermissionsFromXml(File permFile) {
