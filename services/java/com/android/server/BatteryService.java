@@ -35,6 +35,7 @@ import android.os.ServiceManager;
 import android.os.SystemClock;
 import android.os.UEventObserver;
 import android.os.UserHandle;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.EventLog;
 import android.util.Slog;
@@ -134,6 +135,8 @@ public final class BatteryService extends Binder {
     private int mPlugType;
     private int mLastPlugType = -1; // Extra state so we can detect first run
 
+    private int mUpdateInterval;
+
     private long mDischargeStartTime;
     private int mDischargeStartLevel;
 
@@ -171,6 +174,18 @@ public final class BatteryService extends Binder {
         // set initial status
         synchronized (mLock) {
             updateLocked();
+        }
+
+        if ((mUpdateInterval = SystemProperties.getInt("ro.sys.battery_poll_ms", 0)) > 0) {
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (mLock) {
+                        updateLocked();
+                        mHandler.postDelayed(this, mUpdateInterval);
+                    }
+                }
+            }, mUpdateInterval);
         }
     }
 
