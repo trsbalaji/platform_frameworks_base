@@ -540,11 +540,16 @@ public class NotificationManagerService extends INotificationManager.Stub
                         return;
                     }
                     if (packageChanged) {
-                        // We cancel notifications for packages which have just been disabled
-                        final int enabled = mContext.getPackageManager()
-                                .getApplicationEnabledSetting(pkgName);
-                        if (enabled == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                                || enabled == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT) {
+                        try {
+                            // We cancel notifications for packages which have just been disabled
+                            final int enabled = mContext.getPackageManager()
+                                    .getApplicationEnabledSetting(pkgName);
+                            if (enabled == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                                    || enabled == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT) {
+                                return;
+                            }
+                        } catch (IllegalArgumentException e) {
+                            Slog.e(TAG, "Package already removed " + pkgName , e);
                             return;
                         }
                     }

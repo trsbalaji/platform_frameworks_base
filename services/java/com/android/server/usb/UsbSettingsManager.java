@@ -829,6 +829,10 @@ class UsbSettingsManager {
                 Slog.e(TAG, "handlePackageUpdate could not find package " + packageName, e);
                 return;
             }
+            catch (IllegalArgumentException e) {
+                Slog.e(TAG, "handlePackageUpdate could not find package " + packageName, e);
+                return;
+            }
 
             ActivityInfo[] activities = info.activities;
             if (activities == null) return;
