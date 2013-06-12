@@ -66,7 +66,6 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
     private static final String NAME_H2W = "h2w";
     private static final String NAME_USB_AUDIO = "usb_audio";
     private static final String NAME_HDMI_AUDIO = "hdmi_audio";
-    private static final String NAME_HDMI = "hdmi";
 
     private static final int MSG_NEW_DEVICE_STATE = 1;
 
@@ -83,6 +82,7 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
     private final InputManagerService mInputManager;
 
     private final boolean mUseDevInputEventForAudioJack;
+    private final String mHdmiName;
 
     public WiredAccessoryManager(Context context, InputManagerService inputManager) {
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
@@ -93,6 +93,7 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
 
         mUseDevInputEventForAudioJack =
                 context.getResources().getBoolean(R.bool.config_useDevInputEventForAudioJack);
+        mHdmiName = context.getResources().getString(R.string.config_hdmiName);
 
         mObserver = new WiredAccessoryObserver();
 
@@ -357,7 +358,7 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
             if (uei.checkSwitchExists()) {
                 retVal.add(uei);
             } else {
-                uei = new UEventInfo(NAME_HDMI, BIT_HDMI_AUDIO, 0);
+                uei = new UEventInfo(mHdmiName, BIT_HDMI_AUDIO, 0);
                 if (uei.checkSwitchExists()) {
                     retVal.add(uei);
                 } else {
