@@ -977,6 +977,9 @@
          on the headphone/microphone jack. When false use the older uevent framework. -->
     <bool name="config_useDevInputEventForAudioJack">false</bool>
 
+    <!-- Name of the HDMI switch device to look for to detect HDMI audio presence -->
+    <string translatable="false" name="config_hdmiName">hdmi</string>
+
     <!-- Whether safe headphone volume is enabled or not (country specific). -->
     <bool name="config_safe_media_volume_enabled">true</bool>
 
