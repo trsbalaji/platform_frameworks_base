@@ -472,7 +472,15 @@ public class WifiNative {
     }
 
     public boolean setModelNumber(String value) {
-        return doBooleanCommand("SET model_number " + value);
+        String tmp;
+
+        if (value.length() > 16) {
+            tmp = value.substring(0, 16);
+        } else {
+            tmp = value;
+        }
+
+        return doBooleanCommand("SET model_number " + tmp);
     }
 
     public boolean setSerialNumber(String value) {
