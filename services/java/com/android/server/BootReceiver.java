@@ -33,7 +33,11 @@ import android.provider.Downloads;
 import android.util.Slog;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FilenameFilter;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.Math;
 
 /**
  * Performs a number of miscellaneous, non-system-critical actions
@@ -48,6 +52,7 @@ public class BootReceiver extends BroadcastReceiver {
         SystemProperties.getInt("ro.debuggable", 0) == 1 ? 98304 : 65536;
 
     private static final File TOMBSTONE_DIR = new File("/data/tombstones");
+    private static final File PSTORE_DIR = new File("/data/kpanic/pstore");
 
     // The pre-froyo package and class of the system updater, which
     // ran in the system process.  We need to remove its packages here
@@ -126,8 +131,136 @@ public class BootReceiver extends BroadcastReceiver {
                     -LOG_SIZE, "APANIC_CONSOLE");
             addFileToDropBox(db, prefs, headers, "/data/dontpanic/apanic_threads",
                     -LOG_SIZE, "APANIC_THREADS");
+
+
         } else {
             if (db != null) db.addText("SYSTEM_RESTART", headers);
+        }
+
+        /* Handle Linux kernel panics in the pstore.
+         *
+         * Important things to note:
+         * When stored, the oldest messages have the highest number at the end
+         * of the filename, and the index begins at 1.
+         *
+         * Oldest (closest to boot) --> Newest (closest to panic)
+         * fileN, fileN-1, fileN-2  --> file2, file1
+         *
+         * Also, the numbers aren't easily alphabetically sortable because they
+         * will appear as:
+         * file-1, file-10, file-11, file-2, file-3, ... */
+
+        if (db == null || prefs == null) {
+            Slog.e(TAG, "Dropbox or perfs missing; skipping kernel panic dump");
+        } else {
+            File[] pstoreDirs = null;
+            try {
+                pstoreDirs = PSTORE_DIR.listFiles();
+            } catch (SecurityException e) {
+                // Don't kill BootReceiver just because we can't pull the files
+                Slog.e(TAG, "Caught security exception", e);
+            }
+            for (int i = 0; pstoreDirs != null && i < pstoreDirs.length; i++) {
+                File thisDir = pstoreDirs[i];
+                String dirPath = thisDir.toString();
+                String dirName = thisDir.getName();
+                String dbFilename = String.format("KPANIC_DMESG.%s", dirName);
+                StringBuilder kpanicMsg = new StringBuilder(LOG_SIZE);
+                int bytesLost = 0;
+                long dirTime = 0;
+
+                if (!pstoreDirs[i].isDirectory())
+                    continue;
+
+                // Check whether this panic is already in dropbox.
+                dirTime = thisDir.lastModified();
+                long lastTime = prefs.getLong(dbFilename, 0);
+                if (lastTime == dirTime)
+                    continue;
+
+                File[] kpanicFiles = getFilesByPrefix(thisDir, "dmesg-efi-");
+                for (int j = 1; kpanicFiles != null && j <= kpanicFiles.length;
+                        j++) {
+                    File thisFile = new File(dirPath,
+                            String.format("dmesg-efi-%d", j));
+                    String filePath = thisFile.toString();
+                    String fileName = thisFile.getName();
+
+                    if (!thisFile.exists() || !thisFile.canRead()) {
+                        String lostFileMsg = String.format(
+                                "\n<<Crash Report ERROR loading %s>>\n",
+                                filePath);
+                        bytesLost += prependToStringBuilder(kpanicMsg,
+                                lostFileMsg);
+                        Slog.e(TAG, lostFileMsg);
+                        continue;
+                    }
+
+                    bytesLost += prependToStringBuilder(kpanicMsg,
+                            FileUtils.readTextFile(thisFile, 0, null));
+                }
+
+                if (bytesLost > 0)
+                {
+                    String truncMsg = String.format(
+                        "<<Crash Report ALERT: lost __1 bytes from %s>>\n",
+                        dirName);
+                    bytesLost += truncMsg.length() - 3; // 3 for __1
+                    int firstBytesLost =
+                        String.format("%d", bytesLost).length();
+                    bytesLost += firstBytesLost;
+                    // Handle the case where we added a digit to the string
+                    if (firstBytesLost <
+                            String.format("%d", bytesLost).length())
+                        bytesLost++;
+                    truncMsg.replace("__1", String.format("%d", bytesLost));
+
+                    kpanicMsg.delete(0, truncMsg.length());
+                    prependToStringBuilder(kpanicMsg, truncMsg);
+                    Slog.i(TAG, truncMsg);
+                }
+
+                db.addText(dbFilename, kpanicMsg.toString());
+                prefs.edit().putLong(dbFilename, dirTime).apply();
+
+                /* Done handling dmesgs; now handle Android logs.
+                 * Android logs are binary, and should be handled as
+                 * individual files rather than concatenated. */
+                kpanicFiles = getFilesByPrefix(thisDir, "type4-efi-");
+                for (int j = 0; kpanicFiles != null && j < kpanicFiles.length;
+                        j++)
+                {
+                    File thisFile = kpanicFiles[j];
+                    String fileName = thisFile.getName();
+                    /* length() returns long, but shouldn't overflow an int in
+                     * this usecase. Unfortunately, the Drop Box APIs don't
+                     * currently support a read-buffer-write-repeat model. */
+                    byte buffer[] = new byte[(int)thisFile.length()];
+                    FileInputStream fileStream;
+                    try {
+                        fileStream = new FileInputStream(thisFile);
+                    } catch (FileNotFoundException e) {
+                        Slog.e(TAG, String.format("Could not find alog %s",
+                                    fileName));
+                        continue;
+                    } catch (SecurityException e) {
+                        Slog.e(TAG, String.format("Could not open alog %s",
+                                    fileName));
+                        continue;
+                    }
+                    if (fileStream.read(buffer) != thisFile.length())
+                    {
+                        Slog.e(TAG,
+                                String.format("Could not read all of alog %s",
+                                    fileName));
+                        continue;
+                    }
+
+                    db.addData(String.format("KPANIC_ALOG.%s.%s", dirName,
+                                fileName),
+                            buffer, 0);
+                }
+            }
         }
 
         // Scan existing tombstones (in case any new ones appeared)
@@ -174,4 +307,26 @@ public class BootReceiver extends BroadcastReceiver {
         Slog.i(TAG, "Copying " + filename + " to DropBox (" + tag + ")");
         db.addText(tag, headers + FileUtils.readTextFile(file, maxSize, "[[TRUNCATED]]\n"));
     }
+
+    private static int prependToStringBuilder(StringBuilder sb, String str)
+    {
+        int bytesCopied = Math.min(sb.capacity() - sb.length(), str.length());
+        int ret = str.length() - bytesCopied;
+
+        sb.insert(0, str.substring(ret, str.length()));
+
+        return ret;
+    }
+
+    private static File[] getFilesByPrefix(File directory, final String prefix)
+    {
+        File[] retFiles = directory.listFiles(
+                new FilenameFilter() {
+                    public boolean accept(File dir, String name) {
+                        return name.startsWith(prefix);
+                    }
+                });
+        return retFiles;
+    }
+
 }
