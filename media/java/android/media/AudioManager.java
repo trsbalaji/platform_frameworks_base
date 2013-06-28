@@ -16,6 +16,7 @@
 
 package android.media;
 
+import static android.media.AudioManager.RINGER_MODE_SILENT;
 import android.Manifest;
 import android.annotation.SdkConstant;
 import android.annotation.SdkConstant.SdkConstantType;
@@ -536,7 +537,18 @@ public class AudioManager {
                     if (mUseMasterVolume) {
                         setMasterMute(!isMasterMute());
                     } else {
-                        // TODO: Actually handle MUTE.
+                        /*
+                         * Using silent mode for mute implementation.
+                         * Affected streams include music,video,games,media,
+                         * system and notification sounds.
+                         */
+                        boolean muteOn = (getRingerMode() == RINGER_MODE_SILENT);
+
+                        if (muteOn) {   // Toggle mute
+                            setRingerMode(RINGER_MODE_NORMAL);
+                        } else {
+                            setRingerMode(RINGER_MODE_SILENT);
+                        }
                     }
                 }
                 break;
