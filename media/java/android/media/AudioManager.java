@@ -494,7 +494,7 @@ public class AudioManager {
                     if (mUseMasterVolume) {
                         setMasterMute(!isMasterMute());
                     } else {
-                        // TODO: Actually handle MUTE.
+                        setMasterMute(!isMasterMute());
                     }
                 }
                 break;
