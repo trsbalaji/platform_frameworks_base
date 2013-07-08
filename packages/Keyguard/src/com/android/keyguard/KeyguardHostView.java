@@ -467,6 +467,7 @@ public class KeyguardHostView extends KeyguardViewBase {
 
     private void updateSecurityView(View view) {
         if (view instanceof KeyguardSecurityView) {
+            view.requestFocus();
             KeyguardSecurityView ksv = (KeyguardSecurityView) view;
             ksv.setKeyguardCallback(mCallback);
             ksv.setLockPatternUtils(mLockPatternUtils);
@@ -1041,8 +1042,6 @@ public class KeyguardHostView extends KeyguardViewBase {
         if (mViewStateManager != null) {
             mViewStateManager.showUsabilityHints();
         }
-
-        requestFocus();
     }
 
     @Override

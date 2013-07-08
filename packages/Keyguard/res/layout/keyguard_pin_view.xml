@@ -47,7 +47,7 @@
           android:orientation="horizontal"
           android:layout_weight="1"
           >
-          <TextView android:id="@+id/pinEntry"
+          <EditText android:id="@+id/pinEntry"
                android:editable="true"
                android:layout_width="0dip"
                android:layout_height="match_parent"
