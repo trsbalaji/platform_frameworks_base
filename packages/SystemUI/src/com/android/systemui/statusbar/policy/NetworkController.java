@@ -968,8 +968,10 @@ public class NetworkController extends BroadcastReceiver implements DemoMode {
             mEthernetEnabled = true;
             final EthernetInfo ei = (EthernetInfo)
                     intent.getParcelableExtra(EthernetManager.EXTRA_ETHERNET_INFO);
-            final NetworkInfo networkInfo = ei.getNetworkInfo();
-            mEthernetConnected = networkInfo != null && networkInfo.isConnected();
+            if (ei != null) {
+                final NetworkInfo networkInfo = ei.getNetworkInfo();
+                mEthernetConnected = networkInfo != null && networkInfo.isConnected();
+            }
         }
         updateEthernetIcons();
     }
