@@ -28,6 +28,7 @@ import android.os.HandlerThread;
 import android.os.UserHandle;
 import android.os.storage.StorageEventListener;
 import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -123,6 +124,15 @@ public class StorageNotification extends SystemUI {
     private void onStorageStateChangedAsync(String path, String oldState, String newState) {
         if (DEBUG) Log.i(TAG, String.format(
                 "Media {%s} state changed from {%s} -> {%s}", path, oldState, newState));
+
+        StorageVolume[] volumeList = mStorageManager.getVolumeList();
+        StorageVolume volume = null;
+        if (volumeList != null) {
+            for (StorageVolume v : volumeList) {
+                if (v.getPath().equals(path))
+                    volume = v;
+            }
+        }
         if (newState.equals(Environment.MEDIA_SHARED)) {
             /*
              * Storage is now shared. Modify the UMS notification
@@ -198,6 +208,8 @@ public class StorageNotification extends SystemUI {
              */
             Intent intent = new Intent();
             intent.setClass(mContext, com.android.internal.app.ExternalMediaFormatActivity.class);
+            if (volume != null)
+                intent.putExtra(StorageVolume.EXTRA_STORAGE_VOLUME, volume);
             PendingIntent pi = PendingIntent.getActivity(mContext, 0, intent, 0);
 
             setMediaStorageNotification(
@@ -212,6 +224,8 @@ public class StorageNotification extends SystemUI {
              */
             Intent intent = new Intent();
             intent.setClass(mContext, com.android.internal.app.ExternalMediaFormatActivity.class);
+            if (volume != null)
+                intent.putExtra(StorageVolume.EXTRA_STORAGE_VOLUME, volume);
             PendingIntent pi = PendingIntent.getActivity(mContext, 0, intent, 0);
 
             setMediaStorageNotification(

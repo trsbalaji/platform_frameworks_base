@@ -24,6 +24,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.storage.StorageVolume;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -34,7 +35,7 @@ import android.util.Log;
 public class ExternalMediaFormatActivity extends AlertActivity implements DialogInterface.OnClickListener {
 
     private static final int POSITIVE_BUTTON = AlertDialog.BUTTON_POSITIVE;
-
+    private StorageVolume mStorageVolume;
     /** Used to detect when the media state changes, in case we need to call finish() */
     private BroadcastReceiver mStorageReceiver = new BroadcastReceiver() {
         @Override
@@ -57,6 +58,8 @@ public class ExternalMediaFormatActivity extends AlertActivity implements Dialog
 
         Log.d("ExternalMediaFormatActivity", "onCreate!");
         // Set up the "dialog"
+        Intent intent = getIntent();
+        mStorageVolume = intent.getParcelableExtra(StorageVolume.EXTRA_STORAGE_VOLUME);
         final AlertController.AlertParams p = mAlertParams;
         p.mIconId = com.android.internal.R.drawable.stat_sys_warning;
         p.mTitle = getString(com.android.internal.R.string.extmedia_format_title);
@@ -95,6 +98,8 @@ public class ExternalMediaFormatActivity extends AlertActivity implements Dialog
         if (which == POSITIVE_BUTTON) {
             Intent intent = new Intent(ExternalStorageFormatter.FORMAT_ONLY);
             intent.setComponent(ExternalStorageFormatter.COMPONENT_NAME);
+            if (mStorageVolume != null)
+                intent.putExtra(StorageVolume.EXTRA_STORAGE_VOLUME, mStorageVolume);
             startService(intent);
         }
 
