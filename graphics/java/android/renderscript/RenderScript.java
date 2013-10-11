@@ -373,6 +373,11 @@ public class RenderScript {
         rsnAllocationIoReceive(mContext, alloc);
     }
 
+    native void rsnAllocationDestroy(int con, int alloc);
+    synchronized void nAllocationDestroy(int alloc) {
+        validate();
+        rsnAllocationDestroy(mContext, alloc);
+    }
 
     native void rsnAllocationGenerateMipmaps(int con, int alloc);
     synchronized void nAllocationGenerateMipmaps(int alloc) {
