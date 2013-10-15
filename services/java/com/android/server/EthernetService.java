@@ -230,7 +230,7 @@ public class EthernetService extends IEthernetManager.Stub {
         }
     }
 
-    private void removeInterface(String iface) {
+    private synchronized void removeInterface(String iface) {
         if(DBG) Slog.d(TAG, "removeInterface: " + iface);
 
         if ( ! iface.equals(mAvailableInterface.getInfo().getName())) {
@@ -264,7 +264,7 @@ public class EthernetService extends IEthernetManager.Stub {
         mContext.sendBroadcast(newIntent);
     }
 
-    private void addInterface(String iface) {
+    private synchronized void addInterface(String iface) {
         if(DBG) Slog.d(TAG, "addInterface: " + iface);
 
         String eth_regex = mContext.getResources().getString(
@@ -320,7 +320,7 @@ public class EthernetService extends IEthernetManager.Stub {
         saveConfig();
     }
 
-    private void saveConfig() {
+    private synchronized void saveConfig() {
         if(DBG) Slog.d(TAG, "Storing Ethernet interface configs to disk.");
         JsonWriter writer = null;
         try {
@@ -391,11 +391,11 @@ public class EthernetService extends IEthernetManager.Stub {
         if(DBG) Slog.d(TAG, "EthernetService initialized");
     }
 
-    public EthernetInfo getCurrentInterface() {
+    public synchronized EthernetInfo getCurrentInterface() {
         return mAvailableInterface == null ? null : mAvailableInterface.getInfo();
     }
 
-    public boolean teardown() {
+    public synchronized boolean teardown() {
         if(DBG) Slog.d(TAG, "Teardown requested.");
 
         if (mAvailableInterface == null) {
@@ -408,14 +408,14 @@ public class EthernetService extends IEthernetManager.Stub {
         return true;
     }
 
-    public boolean isEnabled() {
+    public synchronized boolean isEnabled() {
         if (mAvailableInterface == null) {
             return false;
         }
         return mAvailableInterface.isEnabled();
     }
 
-    public boolean reconnect() {
+    public synchronized boolean reconnect() {
         if (isEnabled()) {
             return true;
         }
@@ -431,7 +431,7 @@ public class EthernetService extends IEthernetManager.Stub {
         return true;
     }
 
-    public void updateInterface(EthernetInfo newInfo) {
+    public synchronized void updateInterface(EthernetInfo newInfo) {
         if (newInfo == null) {
             Slog.e(TAG, "Null EthernetInfo");
             return;
@@ -499,7 +499,7 @@ public class EthernetService extends IEthernetManager.Stub {
         return new Messenger(mAsyncServiceHandler);
     }
 
-    private void notifyOnDataActivity() {
+    private synchronized void notifyOnDataActivity() {
         long sent, received;
         long preTxPkts = mTxPkts, preRxPkts = mRxPkts;
         int dataActivity = EthernetManager.DATA_ACTIVITY_NONE;
@@ -528,7 +528,7 @@ public class EthernetService extends IEthernetManager.Stub {
         }
     }
 
-    private DetailedState getDetailedState() {
+    private synchronized DetailedState getDetailedState() {
         if (mAvailableInterface != null) {
             return mAvailableInterface.getInfo().getDetailedState();
         }
