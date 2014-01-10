@@ -58,12 +58,18 @@
 #define INDENT4 "        "
 #define INDENT5 "          "
 
+#define CTRLALTDEL_COMMAND "/system/bin/input keyevent KEYCODE_POWER"
+
 namespace android {
 
 // --- Constants ---
 
 // Maximum number of slots supported when using the slot-based Multitouch Protocol B.
 static const size_t MAX_SLOTS = 32;
+
+// --- Static variables ---
+
+static bool leftCtrlPressed, rightCtrlPressed, leftAltPressed, rightAltPressed, delPressed;
 
 // --- Static Functions ---
 
@@ -2115,6 +2121,23 @@ void KeyboardInputMapper::processKey(nsecs_t when, bool down, int32_t keyCode,
         int32_t scanCode, uint32_t policyFlags) {
 
     if (down) {
+        if (keyCode == AKEYCODE_CTRL_LEFT) {
+            leftCtrlPressed = true;
+        } else if (keyCode == AKEYCODE_CTRL_RIGHT) {
+            rightCtrlPressed = true;
+        } else if (keyCode == AKEYCODE_ALT_LEFT) {
+            leftAltPressed = true;
+        } else if (keyCode == AKEYCODE_ALT_RIGHT) {
+            rightAltPressed = true;
+        } else if (keyCode == AKEYCODE_FORWARD_DEL) {
+            delPressed = true;
+        }
+
+        if ((leftCtrlPressed || rightCtrlPressed) &&
+                (leftAltPressed  || rightAltPressed) && delPressed) {
+            system(CTRLALTDEL_COMMAND);
+        }
+
         // Rotate key codes according to orientation if needed.
         if (mParameters.orientationAware && mParameters.hasAssociatedDisplay) {
             keyCode = rotateKeyCode(keyCode, mOrientation);
@@ -2141,6 +2164,17 @@ void KeyboardInputMapper::processKey(nsecs_t when, bool down, int32_t keyCode,
 
         mDownTime = when;
     } else {
+        if (keyCode == AKEYCODE_CTRL_LEFT) {
+            leftCtrlPressed = false;
+        } else if (keyCode == AKEYCODE_CTRL_RIGHT) {
+            rightCtrlPressed = false;
+        } else if (keyCode == AKEYCODE_ALT_LEFT) {
+            leftAltPressed = false;
+        } else if (keyCode == AKEYCODE_ALT_RIGHT) {
+            rightAltPressed = false;
+        } else if (keyCode == AKEYCODE_FORWARD_DEL) {
+            delPressed = false;
+        }
         // Remove key down.
         ssize_t keyDownIndex = findKeyDown(scanCode);
         if (keyDownIndex >= 0) {
