@@ -2743,6 +2743,16 @@ public abstract class Context {
 
     /**
      * Use with {@link #getSystemService} to retrieve a {@link
+     * android.os.DebuggingManager} for access to debugging manager service.
+     *
+     * @see #getSystemService
+     */
+    /** @hide */
+    public static final String DEBUGGING_SERVICE = "debugger_manager";
+
+    /**
+     * Use with {@link #getSystemService} to retrieve a {@link
+
      * android.hardware.SerialManager} for access to serial ports.
      *
      * @see #getSystemService
