@@ -402,6 +402,7 @@ public final class SystemServer {
         WindowManagerService wm = null;
         BluetoothManagerService bluetooth = null;
         UsbService usb = null;
+	DebuggingService debugger = null;
         SerialService serial = null;
         NetworkTimeUpdateService networkTimeUpdater = null;
         CommonTimeManagementService commonTimeMgmtService = null;
@@ -821,6 +822,15 @@ public final class SystemServer {
                     // Manage USB host and device support
                     mSystemServiceManager.startService(USB_SERVICE_CLASS);
                 }
+
+                try {
+                    Slog.i(TAG, "Debugging Service");
+                    debugger = new DebuggingService(context);
+                    ServiceManager.addService(Context.DEBUGGING_SERVICE, debugger);
+                } catch (Throwable e) {
+                    reportWtf("starting DebuggingService", e);
+                }
+
 
                 try {
                     Slog.i(TAG, "Serial Service");
