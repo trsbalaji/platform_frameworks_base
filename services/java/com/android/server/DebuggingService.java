@@ -14,19 +14,25 @@
  * limitations under the License.
  */
 
-package com.android.server.usb;
+package com.android.server;
 
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.ContentObserver;
 import android.net.LocalSocket;
 import android.net.LocalSocketAddress;
 import android.os.Handler;
 import android.os.Environment;
 import android.os.FileUtils;
+import android.os.IDebuggingManager;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.util.Slog;
 import android.util.Base64;
 import com.android.server.FgThread;
@@ -42,8 +48,8 @@ import java.io.PrintWriter;
 import java.security.MessageDigest;
 import java.util.Arrays;
 
-public class UsbDebuggingManager implements Runnable {
-    private static final String TAG = "UsbDebuggingManager";
+public class DebuggingService extends IDebuggingManager.Stub implements Runnable {
+    private static final String TAG = "DebuggingService";
     private static final boolean DEBUG = false;
 
     private final String ADBD_SOCKET = "adbd";
@@ -52,16 +58,48 @@ public class UsbDebuggingManager implements Runnable {
     private final int BUFFER_SIZE = 4096;
 
     private final Context mContext;
+    private final ContentResolver mContentResolver;
     private final Handler mHandler;
     private Thread mThread;
     private boolean mAdbEnabled = false;
+    private boolean mRunning = false;
     private String mFingerprints;
     private LocalSocket mSocket = null;
     private OutputStream mOutputStream = null;
 
-    public UsbDebuggingManager(Context context) {
-        mHandler = new UsbDebuggingHandler(FgThread.get().getLooper());
+    private class AdbSettingsObserver extends ContentObserver {
+        public AdbSettingsObserver() {
+            super(null);
+        }
+        @Override
+        public void onChange(boolean selfChange) {
+            boolean enable = (Settings.Global.getInt(mContentResolver,
+                    Settings.Global.ADB_ENABLED, 0) > 0);
+            setAdbEnabled(enable);
+        }
+    }
+
+    private final BroadcastReceiver mBootCompletedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Start connection to adbd
+            mHandler.sendEmptyMessage(DebuggingHandler.MESSAGE_START);
+        }
+    };
+
+    public DebuggingService(Context context) {
         mContext = context;
+        mContentResolver = context.getContentResolver();
+
+        // register observer to listen for settings changes
+        mContentResolver.registerContentObserver(
+                Settings.Global.getUriFor(Settings.Global.ADB_ENABLED),
+                false, new AdbSettingsObserver());
+        // register intent filter for boot complete to start the service
+        mContext.registerReceiver(
+                mBootCompletedReceiver, new IntentFilter(Intent.ACTION_BOOT_COMPLETED));
+
+        mHandler = new DebuggingHandler(FgThread.get().getLooper());
     }
 
     private void listenToSocket() throws IOException {
@@ -87,7 +125,7 @@ public class UsbDebuggingManager implements Runnable {
                 if (buffer[0] == 'P' && buffer[1] == 'K') {
                     String key = new String(Arrays.copyOfRange(buffer, 2, count));
                     Slog.d(TAG, "Received public key: " + key);
-                    Message msg = mHandler.obtainMessage(UsbDebuggingHandler.MESSAGE_ADB_CONFIRM);
+                    Message msg = mHandler.obtainMessage(DebuggingHandler.MESSAGE_ADB_CONFIRM);
                     msg.obj = key;
                     mHandler.sendMessage(msg);
                 }
@@ -106,7 +144,7 @@ public class UsbDebuggingManager implements Runnable {
 
     @Override
     public void run() {
-        while (mAdbEnabled) {
+        while (mRunning) {
             try {
                 listenToSocket();
             } catch (Exception e) {
@@ -117,16 +155,21 @@ public class UsbDebuggingManager implements Runnable {
     }
 
     private void closeSocket() {
-        try {
-            mOutputStream.close();
-        } catch (IOException e) {
-            Slog.e(TAG, "Failed closing output stream: " + e);
+        if (mOutputStream != null) {
+            try {
+                mOutputStream.close();
+            } catch (IOException e) {
+                Slog.e(TAG, "Failed closing output stream: " + e);
+            }
         }
 
-        try {
-            mSocket.close();
-        } catch (IOException ex) {
-            Slog.e(TAG, "Failed closing socket: " + ex);
+        if (mSocket != null) {
+            try {
+                mSocket.getInputStream().close();
+                mSocket.close();
+            } catch (IOException ex) {
+                Slog.e(TAG, "Failed closing socket: " + ex);
+            }
         }
     }
 
@@ -141,36 +184,37 @@ public class UsbDebuggingManager implements Runnable {
         }
     }
 
-    class UsbDebuggingHandler extends Handler {
-        private static final int MESSAGE_ADB_ENABLED = 1;
-        private static final int MESSAGE_ADB_DISABLED = 2;
-        private static final int MESSAGE_ADB_ALLOW = 3;
-        private static final int MESSAGE_ADB_DENY = 4;
-        private static final int MESSAGE_ADB_CONFIRM = 5;
-        private static final int MESSAGE_ADB_CLEAR = 6;
+    class DebuggingHandler extends Handler {
+        private static final int MESSAGE_START = 1;
+        private static final int MESSAGE_STOP = 2;
+        private static final int MESSAGE_ADB_ENABLED = 3;
+        private static final int MESSAGE_ADB_DISABLED = 4;
+        private static final int MESSAGE_ADB_ALLOW = 5;
+        private static final int MESSAGE_ADB_DENY = 6;
+        private static final int MESSAGE_ADB_CONFIRM = 7;
+        private static final int MESSAGE_ADB_CLEAR = 8;
 
-        public UsbDebuggingHandler(Looper looper) {
+        public DebuggingHandler(Looper looper) {
             super(looper);
         }
 
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MESSAGE_ADB_ENABLED:
-                    if (mAdbEnabled)
+                case MESSAGE_START:
+                    if (mRunning)
                         break;
 
-                    mAdbEnabled = true;
-
-                    mThread = new Thread(UsbDebuggingManager.this, TAG);
+                    mRunning = true;
+                    mThread = new Thread(DebuggingService.this, TAG);
                     mThread.start();
 
                     break;
 
-                case MESSAGE_ADB_DISABLED:
-                    if (!mAdbEnabled)
+                case MESSAGE_STOP:
+                    if (!mRunning)
                         break;
 
-                    mAdbEnabled = false;
+                    mRunning = false;
                     closeSocket();
 
                     try {
@@ -181,6 +225,25 @@ public class UsbDebuggingManager implements Runnable {
                     mThread = null;
                     mOutputStream = null;
                     mSocket = null;
+
+                    break;
+
+                case MESSAGE_ADB_ENABLED:
+                    if (mAdbEnabled)
+                        break;
+
+                    mAdbEnabled = true;
+                    // TODO: send a message to adbd o stop accepting clients
+
+                    break;
+
+                case MESSAGE_ADB_DISABLED:
+                    if (!mAdbEnabled)
+                        break;
+
+                    mAdbEnabled = false;
+                    // TODO: send a message to adbd to start accepting clients
+
                     break;
 
                 case MESSAGE_ADB_ALLOW: {
@@ -303,40 +366,26 @@ public class UsbDebuggingManager implements Runnable {
     }
 
     public void setAdbEnabled(boolean enabled) {
-        mHandler.sendEmptyMessage(enabled ? UsbDebuggingHandler.MESSAGE_ADB_ENABLED
-                                          : UsbDebuggingHandler.MESSAGE_ADB_DISABLED);
+        mContext.enforceCallingOrSelfPermission(android.Manifest.permission.MANAGE_USB, null);
+        mHandler.sendEmptyMessage(enabled ? DebuggingHandler.MESSAGE_ADB_ENABLED
+                                          : DebuggingHandler.MESSAGE_ADB_DISABLED);
     }
 
-    public void allowUsbDebugging(boolean alwaysAllow, String publicKey) {
-        Message msg = mHandler.obtainMessage(UsbDebuggingHandler.MESSAGE_ADB_ALLOW);
+    public void allowDebugging(boolean alwaysAllow, String publicKey) {
+        mContext.enforceCallingOrSelfPermission(android.Manifest.permission.MANAGE_USB, null);
+        Message msg = mHandler.obtainMessage(DebuggingHandler.MESSAGE_ADB_ALLOW);
         msg.arg1 = alwaysAllow ? 1 : 0;
         msg.obj = publicKey;
         mHandler.sendMessage(msg);
     }
 
-    public void denyUsbDebugging() {
-        mHandler.sendEmptyMessage(UsbDebuggingHandler.MESSAGE_ADB_DENY);
+    public void denyDebugging() {
+        mContext.enforceCallingOrSelfPermission(android.Manifest.permission.MANAGE_USB, null);
+        mHandler.sendEmptyMessage(DebuggingHandler.MESSAGE_ADB_DENY);
     }
 
-    public void clearUsbDebuggingKeys() {
-        mHandler.sendEmptyMessage(UsbDebuggingHandler.MESSAGE_ADB_CLEAR);
-    }
-
-    public void dump(FileDescriptor fd, PrintWriter pw) {
-        pw.println("  USB Debugging State:");
-        pw.println("    Connected to adbd: " + (mOutputStream != null));
-        pw.println("    Last key received: " + mFingerprints);
-        pw.println("    User keys:");
-        try {
-            pw.println(FileUtils.readTextFile(new File("/data/misc/adb/adb_keys"), 0, null));
-        } catch (IOException e) {
-            pw.println("IOException: " + e);
-        }
-        pw.println("    System keys:");
-        try {
-            pw.println(FileUtils.readTextFile(new File("/adb_keys"), 0, null));
-        } catch (IOException e) {
-            pw.println("IOException: " + e);
-        }
+    public void clearDebuggingKeys() {
+        mContext.enforceCallingOrSelfPermission(android.Manifest.permission.MANAGE_USB, null);
+        mHandler.sendEmptyMessage(DebuggingHandler.MESSAGE_ADB_CLEAR);
     }
 }

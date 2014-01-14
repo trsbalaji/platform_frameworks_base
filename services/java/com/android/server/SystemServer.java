@@ -146,6 +146,7 @@ class ServerThread {
         BluetoothManagerService bluetooth = null;
         DockObserver dock = null;
         UsbService usb = null;
+        DebuggingService debugger = null;
         SerialService serial = null;
         TwilightService twilight = null;
         UiModeManagerService uiMode = null;
@@ -680,6 +681,15 @@ class ServerThread {
                 } catch (Throwable e) {
                     reportWtf("starting UsbService", e);
                 }
+
+                try {
+                    Slog.i(TAG, "Debugging Service");
+                    debugger = new DebuggingService(context);
+                    ServiceManager.addService(Context.DEBUGGING_SERVICE, debugger);
+                } catch (Throwable e) {
+                    reportWtf("starting DebuggingService", e);
+                }
+
 
                 try {
                     Slog.i(TAG, "Serial Service");

@@ -23,10 +23,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.hardware.usb.IUsbManager;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.IDebuggingManager;
 import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.util.Log;
@@ -121,15 +121,15 @@ public class UsbDebuggingActivity extends AlertActivity
         boolean allow = (which == AlertDialog.BUTTON_POSITIVE);
         boolean alwaysAllow = allow && mAlwaysAllow.isChecked();
         try {
-            IBinder b = ServiceManager.getService(USB_SERVICE);
-            IUsbManager service = IUsbManager.Stub.asInterface(b);
+            IBinder b = ServiceManager.getService(DEBUGGING_SERVICE);
+            IDebuggingManager service = IDebuggingManager.Stub.asInterface(b);
             if (allow) {
-                service.allowUsbDebugging(alwaysAllow, mKey);
+                service.allowDebugging(alwaysAllow, mKey);
             } else {
-                service.denyUsbDebugging();
+                service.denyDebugging();
             }
         } catch (Exception e) {
-            Log.e(TAG, "Unable to notify Usb service", e);
+            Log.e(TAG, "Unable to notify Debugging service", e);
         }
         finish();
     }
