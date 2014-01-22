@@ -32,6 +32,7 @@ import android.os.IDebuggingManager;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.Slog;
 import android.util.Base64;
@@ -82,8 +83,11 @@ public class DebuggingService extends IDebuggingManager.Stub implements Runnable
     private final BroadcastReceiver mBootCompletedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // Start connection to adbd
-            mHandler.sendEmptyMessage(DebuggingHandler.MESSAGE_START);
+            boolean secureAdbEnabled = SystemProperties.getBoolean("ro.adb.secure", false);
+            if (secureAdbEnabled) {
+                // Start connection to adbd
+                mHandler.sendEmptyMessage(DebuggingHandler.MESSAGE_START);
+            }
         }
     };
 
