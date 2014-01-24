@@ -2027,6 +2027,12 @@ public final class ActiveServices {
                 }
             }
         }
+        // Clean up any connections this application has to other services.
+        for (int i=app.connections.size()-1; i>=0; i--) {
+            ConnectionRecord r = app.connections.valueAt(i);
+            removeConnectionLocked(r, app, null);
+        }
+        app.connections.clear();
 
         // First clear app state from services.
         for (int i=app.services.size()-1; i>=0; i--) {
@@ -2053,20 +2059,10 @@ public final class ActiveServices {
                 b.binder = null;
                 b.requested = b.received = b.hasBound = false;
             }
-        }
 
-        // Clean up any connections this application has to other services.
-        for (int i=app.connections.size()-1; i>=0; i--) {
-            ConnectionRecord r = app.connections.valueAt(i);
-            removeConnectionLocked(r, app, null);
-        }
-        app.connections.clear();
+            ServiceMap smap = getServiceMap(app.userId);
 
-        ServiceMap smap = getServiceMap(app.userId);
-
-        // Now do remaining service cleanup.
-        for (int i=app.services.size()-1; i>=0; i--) {
-            ServiceRecord sr = app.services.valueAt(i);
+            // Now do remaining service cleanup.
             // Sanity check: if the service listed for the app is not one
             // we actually are maintaining, drop it.
             if (smap.mServicesByName.get(sr.name) != sr) {
