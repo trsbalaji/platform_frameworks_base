@@ -29,6 +29,8 @@ import android.content.Intent;
 import android.content.pm.IPackageManager;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.database.ContentObserver;
+import android.database.Cursor;
 import android.media.AudioService;
 import android.media.tv.TvInputManager;
 import android.os.Build;
@@ -44,6 +46,7 @@ import android.os.StrictMode;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.service.dreams.DreamService;
 import android.util.DisplayMetrics;
 import android.util.EventLog;
@@ -275,6 +278,19 @@ public final class SystemServer {
         Slog.wtf(TAG, "BOOT FAILURE " + msg, e);
     }
 
+    private class AdbPortObserver extends ContentObserver {
+        public AdbPortObserver() {
+            super(null);
+        }
+        @Override
+        public void onChange(boolean selfChange) {
+            int adbPort = Settings.Secure.getInt(mContentResolver,
+                    Settings.Secure.ADB_PORT, 0);
+            // setting this will control whether ADB runs on TCP/IP or USB
+            SystemProperties.set("service.adb.tcp.port", Integer.toString(adbPort));
+        }
+    }
+
     private void performPendingShutdown() {
         final String shutdownAction = SystemProperties.get(
                 ShutdownThread.SHUTDOWN_ACTION_PROPERTY, "");
@@ -402,7 +418,7 @@ public final class SystemServer {
         WindowManagerService wm = null;
         BluetoothManagerService bluetooth = null;
         UsbService usb = null;
-	DebuggingService debugger = null;
+        DebuggingService debugger = null;
         SerialService serial = null;
         NetworkTimeUpdateService networkTimeUpdater = null;
         CommonTimeManagementService commonTimeMgmtService = null;
@@ -968,6 +984,21 @@ public final class SystemServer {
         if (!disableNonCoreServices) {
             mSystemServiceManager.startService(MediaProjectionManagerService.class);
         }
+
+
+        if ("user".equals(Build.TYPE)) {
+            // If this is a user build, unset ADB_ENABLED
+            Settings.Secure.putInt(mContentResolver, Settings.Secure.ADB_PORT, -1);
+        } else {
+            // make sure the ADB_ENABLED setting value matches the secure property value
+            Settings.Secure.putInt(mContentResolver, Settings.Secure.ADB_PORT,
+                    Integer.parseInt(SystemProperties.get("service.adb.tcp.port", "-1")));
+        }
+
+        // register observer to listen for settings changes
+        mContentResolver.registerContentObserver(
+                Settings.Secure.getUriFor(Settings.Secure.ADB_PORT),
+                false, new AdbPortObserver());
 
         // Before things start rolling, be sure we have decided whether
         // we are in safe mode.
