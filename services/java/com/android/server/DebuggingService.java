@@ -63,7 +63,6 @@ public class DebuggingService extends IDebuggingManager.Stub implements Runnable
     private final Handler mHandler;
     private Thread mThread;
     private boolean mAdbEnabled = false;
-    private boolean mRunning = false;
     private String mFingerprints;
     private LocalSocket mSocket = null;
     private OutputStream mOutputStream = null;
@@ -83,11 +82,9 @@ public class DebuggingService extends IDebuggingManager.Stub implements Runnable
     private final BroadcastReceiver mBootCompletedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            boolean secureAdbEnabled = SystemProperties.getBoolean("ro.adb.secure", false);
-            if (secureAdbEnabled) {
-                // Start connection to adbd
-                mHandler.sendEmptyMessage(DebuggingHandler.MESSAGE_START);
-            }
+            boolean adbEnabled = (Settings.Global.getInt(mContentResolver,
+                    Settings.Global.ADB_ENABLED, 0) > 0);
+            setAdbEnabled(adbEnabled);
         }
     };
 
@@ -148,7 +145,7 @@ public class DebuggingService extends IDebuggingManager.Stub implements Runnable
 
     @Override
     public void run() {
-        while (mRunning) {
+        while (mAdbEnabled) {
             try {
                 listenToSocket();
             } catch (Exception e) {
@@ -189,14 +186,12 @@ public class DebuggingService extends IDebuggingManager.Stub implements Runnable
     }
 
     class DebuggingHandler extends Handler {
-        private static final int MESSAGE_START = 1;
-        private static final int MESSAGE_STOP = 2;
-        private static final int MESSAGE_ADB_ENABLED = 3;
-        private static final int MESSAGE_ADB_DISABLED = 4;
-        private static final int MESSAGE_ADB_ALLOW = 5;
-        private static final int MESSAGE_ADB_DENY = 6;
-        private static final int MESSAGE_ADB_CONFIRM = 7;
-        private static final int MESSAGE_ADB_CLEAR = 8;
+        private static final int MESSAGE_ADB_ENABLED = 1;
+        private static final int MESSAGE_ADB_DISABLED = 2;
+        private static final int MESSAGE_ADB_ALLOW = 3;
+        private static final int MESSAGE_ADB_DENY = 4;
+        private static final int MESSAGE_ADB_CONFIRM = 5;
+        private static final int MESSAGE_ADB_CLEAR = 6;
 
         public DebuggingHandler(Looper looper) {
             super(looper);
@@ -204,21 +199,21 @@ public class DebuggingService extends IDebuggingManager.Stub implements Runnable
 
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MESSAGE_START:
-                    if (mRunning)
+                case MESSAGE_ADB_ENABLED:
+                    if (mAdbEnabled)
                         break;
 
-                    mRunning = true;
+                    mAdbEnabled = true;
                     mThread = new Thread(DebuggingService.this, TAG);
                     mThread.start();
 
                     break;
 
-                case MESSAGE_STOP:
-                    if (!mRunning)
+                case MESSAGE_ADB_DISABLED:
+                    if (!mAdbEnabled)
                         break;
 
-                    mRunning = false;
+                    mAdbEnabled = false;
                     closeSocket();
 
                     try {
@@ -229,24 +224,6 @@ public class DebuggingService extends IDebuggingManager.Stub implements Runnable
                     mThread = null;
                     mOutputStream = null;
                     mSocket = null;
-
-                    break;
-
-                case MESSAGE_ADB_ENABLED:
-                    if (mAdbEnabled)
-                        break;
-
-                    mAdbEnabled = true;
-                    // TODO: send a message to adbd o stop accepting clients
-
-                    break;
-
-                case MESSAGE_ADB_DISABLED:
-                    if (!mAdbEnabled)
-                        break;
-
-                    mAdbEnabled = false;
-                    // TODO: send a message to adbd to start accepting clients
 
                     break;
 
@@ -371,8 +348,14 @@ public class DebuggingService extends IDebuggingManager.Stub implements Runnable
 
     public void setAdbEnabled(boolean enabled) {
         mContext.enforceCallingOrSelfPermission(android.Manifest.permission.MANAGE_USB, null);
-        mHandler.sendEmptyMessage(enabled ? DebuggingHandler.MESSAGE_ADB_ENABLED
-                                          : DebuggingHandler.MESSAGE_ADB_DISABLED);
+        boolean secureAdbEnabled = SystemProperties.getBoolean("ro.adb.secure", false);
+        boolean dataEncrypted = "1".equals(SystemProperties.get("vold.decrypt"));
+        if (enabled && secureAdbEnabled && !dataEncrypted) {
+            // Start connection to adbd
+            mHandler.sendEmptyMessage(DebuggingHandler.MESSAGE_ADB_ENABLED);
+        } else if (!enabled) {
+            mHandler.sendEmptyMessage(DebuggingHandler.MESSAGE_ADB_DISABLED);
+        }
     }
 
     public void allowDebugging(boolean alwaysAllow, String publicKey) {
