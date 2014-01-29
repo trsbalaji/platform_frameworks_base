@@ -46,7 +46,10 @@ LOCAL_SRC_FILES += native/imageproc/brightness.c \
                    native/imageproc/invert.c \
                    native/imageproc/to_rgba.c
 
-LOCAL_SHARED_LIBRARIES := liblog libutils libfilterfw
+LOCAL_SHARED_LIBRARIES := liblog libutils
+ifneq ($(INTEL_HOUDINI),true)
+LOCAL_SHARED_LIBRARIES += libfilterfw
+endif
 
 LOCAL_PRELINK_MODULE := false
 
