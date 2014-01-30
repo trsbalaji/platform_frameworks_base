@@ -80,7 +80,7 @@ import java.util.Set;
 
 public class EthernetService extends IEthernetManager.Stub {
     private static final String TAG = "EthernetService";
-    private static final boolean DBG = true;
+    private static final boolean DBG = false;
     private static final String PERSIST_FILE = Environment.getDataDirectory() +
             "/misc/ethernet_interfaces.json";
     private static final int POLL_TRAFFIC_STATS_INTERVAL_MSECS = 1000;
