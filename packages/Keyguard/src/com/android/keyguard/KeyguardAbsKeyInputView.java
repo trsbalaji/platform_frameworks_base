@@ -80,6 +80,11 @@ public abstract class KeyguardAbsKeyInputView extends LinearLayout
         // start fresh
         mPasswordEntry.setText("");
         mPasswordEntry.requestFocus();
+        if (getPasswordTextViewId() == R.id.pinEntry) {
+            InputMethodManager mgr = (InputMethodManager) mContext
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
+            mgr.hideSoftInputFromWindow(mPasswordEntry.getWindowToken(), 0);
+        }
 
         // if the user is currently locked out, enforce it.
         long deadline = mLockPatternUtils.getLockoutAttemptDeadline();
@@ -100,10 +105,9 @@ public abstract class KeyguardAbsKeyInputView extends LinearLayout
 
     @Override
     protected void onFinishInflate() {
-        final int passwordTextViewId = getPasswordTextViewId();
         mLockPatternUtils = new LockPatternUtils(mContext);
 
-        mPasswordEntry = (TextView) findViewById(passwordTextViewId);
+        mPasswordEntry = (TextView) findViewById(getPasswordTextViewId());
         mPasswordEntry.setOnEditorActionListener(this);
         mPasswordEntry.addTextChangedListener(this);
 
@@ -113,12 +117,6 @@ public abstract class KeyguardAbsKeyInputView extends LinearLayout
         // Poke the wakelock any time the text is selected or modified
         mPasswordEntry.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                if (passwordTextViewId == R.id.pinEntry) {
-                    InputMethodManager mgr =
-                            (InputMethodManager) mContext
-                            .getSystemService(Context.INPUT_METHOD_SERVICE);
-                    mgr.hideSoftInputFromWindow(v.getWindowToken(), 0);
-                }
                 mCallback.userActivity(0); // TODO: customize timeout for text?
             }
         });
