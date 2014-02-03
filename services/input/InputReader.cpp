@@ -476,10 +476,6 @@ void InputReader::processEventsForDeviceLocked(int32_t deviceId,
         return;
     }
 
-    if (device->isDisabled()) {
-        return;
-    }
-
     device->process(rawEvents, count);
 }
 
@@ -704,22 +700,6 @@ void InputReader::cancelVibrate(int32_t deviceId, int32_t token) {
     }
 }
 
-void InputReader::setInputDeviceDisabled(int32_t deviceId, bool disabled) {
-    AutoMutex _l(mLock);
-
-    ssize_t deviceIndex = mDevices.indexOfKey(deviceId);
-    if (deviceIndex >= 0) {
-        InputDevice* device = mDevices.valueAt(deviceIndex);
-        device->setDisabled(disabled);
-
-        if (disabled) {
-            ALOGI("Device disabled: id=%d", deviceId);
-        } else {
-            ALOGI("Device enabled: id=%d", deviceId);
-        }
-    }
-}
-
 void InputReader::dump(String8& dump) {
     AutoMutex _l(mLock);
 
@@ -873,8 +853,7 @@ InputDevice::InputDevice(InputReaderContext* context, int32_t id, int32_t genera
         int32_t controllerNumber, const InputDeviceIdentifier& identifier, uint32_t classes) :
         mContext(context), mId(id), mGeneration(generation), mControllerNumber(controllerNumber),
         mIdentifier(identifier), mClasses(classes),
-        mSources(0), mIsExternal(false), mDropUntilNextSync(false),
-        mIsDisabled(false) {
+        mSources(0), mIsExternal(false), mDropUntilNextSync(false) {
 }
 
 InputDevice::~InputDevice() {
