@@ -1786,9 +1786,6 @@ public class LocationManagerService extends ILocationManager.Stub {
         long identity = Binder.clearCallingIdentity();
         try {
             synchronized (mLock) {
-                LocationProviderInterface p = mProvidersByName.get(provider);
-                if (p == null) return false;
-
                 return isAllowedByUserSettingsLocked(provider, uid);
             }
         } finally {
