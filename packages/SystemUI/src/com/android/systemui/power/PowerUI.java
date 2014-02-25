@@ -54,7 +54,6 @@ public class PowerUI extends SystemUI {
 
     int mBatteryLevel = 100;
     int mBatteryStatus = BatteryManager.BATTERY_STATUS_UNKNOWN;
-    boolean mBatteryPresent = false;
     int mPlugType = 0;
     int mInvalidCharger = 0;
 
@@ -123,8 +122,6 @@ public class PowerUI extends SystemUI {
                 final int oldBatteryStatus = mBatteryStatus;
                 mBatteryStatus = intent.getIntExtra(BatteryManager.EXTRA_STATUS,
                         BatteryManager.BATTERY_STATUS_UNKNOWN);
-                mBatteryPresent = intent.getBooleanExtra(BatteryManager.EXTRA_PRESENT, false);
-
                 final int oldPlugType = mPlugType;
                 mPlugType = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 1);
                 final int oldInvalidCharger = mInvalidCharger;
@@ -161,7 +158,7 @@ public class PowerUI extends SystemUI {
 
                 if (!plugged
                         && (bucket < oldBucket || oldPlugged)
-                        && mBatteryPresent
+                        && mBatteryStatus != BatteryManager.BATTERY_STATUS_UNKNOWN
                         && bucket < 0) {
                     showLowBatteryWarning();
 
@@ -324,8 +321,6 @@ public class PowerUI extends SystemUI {
         pw.println(Integer.toString(mBatteryLevel));
         pw.print("mBatteryStatus=");
         pw.println(Integer.toString(mBatteryStatus));
-        pw.print("mBatteryPresent=");
-        pw.println(Boolean.toString(mBatteryPresent));
         pw.print("mPlugType=");
         pw.println(Integer.toString(mPlugType));
         pw.print("mInvalidCharger=");

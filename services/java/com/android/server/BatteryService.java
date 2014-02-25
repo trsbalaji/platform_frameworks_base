@@ -188,6 +188,11 @@ public final class BatteryService extends Binder {
     }
 
     private boolean isPoweredLocked(int plugTypeSet) {
+        // assume we are powered if battery state is unknown so
+        // the "stay on while plugged in" option will work.
+        if (mBatteryProps.batteryStatus == BatteryManager.BATTERY_STATUS_UNKNOWN) {
+            return true;
+        }
         if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_AC) != 0 && mBatteryProps.chargerAcOnline) {
             return true;
         }
