@@ -54,14 +54,8 @@ namespace android {
 // These match PackageManager.java install codes
 typedef enum {
     INSTALL_SUCCEEDED = 1,
-#ifdef WITH_HOUDINI
-    INSTALL_ABI2_SUCCEEDED = 2,
-#endif
     INSTALL_FAILED_INVALID_APK = -2,
     INSTALL_FAILED_INSUFFICIENT_STORAGE = -4,
-#ifdef WITH_HOUDINI
-    INSTALL_FAILED_CPU_ABI_INCOMPATIBLE = -16,
-#endif
     INSTALL_FAILED_CONTAINER_ERROR = -18,
     INSTALL_FAILED_INTERNAL_ERROR = -110,
 } install_status_t;
@@ -162,14 +156,6 @@ sumFiles(JNIEnv* env, void* arg, ZipFileRO* zipFile, ZipEntryRO zipEntry, const 
 
     return INSTALL_SUCCEEDED;
 }
-
-#ifdef WITH_HOUDINI
-static install_status_t
-listFiles(JNIEnv* env, void* arg, ZipFileRO* zipFile, ZipEntryRO zipEntry, const char* fileName)
-{
-    return INSTALL_SUCCEEDED;
-}
-#endif
 
 /*
  * Copy the native library if needed.
@@ -298,10 +284,6 @@ iterateOverNativeFiles(JNIEnv *env, jstring javaFilePath, jstring javaCpuAbi, js
 
     char fileName[PATH_MAX];
     bool hasPrimaryAbi = false;
-#ifdef WITH_HOUDINI
-    bool useSecondaryAbi = false;
-    bool noMatchAbi = false;
-#endif
 
     for (int i = 0; i < N; i++) {
         const ZipEntryRO entry = zipFile.findEntryByIndex(i);
@@ -351,15 +333,9 @@ iterateOverNativeFiles(JNIEnv *env, jstring javaFilePath, jstring javaCpuAbi, js
                 ALOGV("Already saw primary ABI, skipping secondary ABI %s\n", cpuAbi2.c_str());
                 continue;
             } else {
-#ifdef WITH_HOUDINI
-                useSecondaryAbi = true;
-#endif
                 ALOGV("Using secondary ABI %s\n", cpuAbi2.c_str());
             }
         } else {
-#ifdef WITH_HOUDINI
-            noMatchAbi = true;
-#endif
             ALOGV("abi didn't match anything: %s (end at %zd)\n", cpuAbiOffset, cpuAbiRegionSize);
             continue;
         }
@@ -378,14 +354,6 @@ iterateOverNativeFiles(JNIEnv *env, jstring javaFilePath, jstring javaCpuAbi, js
             }
         }
     }
-
-#ifdef WITH_HOUDINI
-    if (!hasPrimaryAbi && !useSecondaryAbi && noMatchAbi)
-        return INSTALL_FAILED_CPU_ABI_INCOMPATIBLE;
-
-    if (!hasPrimaryAbi && useSecondaryAbi)
-        return INSTALL_ABI2_SUCCEEDED;
-#endif
 
     return INSTALL_SUCCEEDED;
 }
@@ -409,16 +377,6 @@ com_android_internal_content_NativeLibraryHelper_sumNativeBinaries(JNIEnv *env, 
     return totalSize;
 }
 
-#ifdef WITH_HOUDINI
-static jint
-com_android_internal_content_NativeLibraryHelper_listNativeBinaries(JNIEnv *env, jclass clazz,
-        jstring javaFilePath, jstring javaCpuAbi, jstring javaCpuAbi2)
-{
-    return (jint) iterateOverNativeFiles(env, javaFilePath, javaCpuAbi, javaCpuAbi2,
-            listFiles, NULL);
-}
-#endif
-
 static JNINativeMethod gMethods[] = {
     {"nativeCopyNativeBinaries",
             "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I",
@@ -426,11 +384,6 @@ static JNINativeMethod gMethods[] = {
     {"nativeSumNativeBinaries",
             "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
             (void *)com_android_internal_content_NativeLibraryHelper_sumNativeBinaries},
-#ifdef WITH_HOUDINI
-    {"nativeListNativeBinaries",
-            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I",
-            (void *)com_android_internal_content_NativeLibraryHelper_listNativeBinaries},
-#endif
 };
 
 

@@ -30,7 +30,6 @@ import android.content.pm.PackageParser;
 import android.content.res.ObbInfo;
 import android.content.res.ObbScanner;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Environment;
 import android.os.Environment.UserEnvironment;
 import android.os.FileUtils;
@@ -84,8 +83,6 @@ import libcore.io.StructStatVfs;
 public class DefaultContainerService extends IntentService {
     private static final String TAG = "DefContainer";
     private static final boolean localLOGV = false;
-    private static final boolean ENABLE_HOUDINI = Build.CPU_ABI.equals("x86") &&
-            (Build.CPU_ABI2.length()!=0);
 
     private static final String LIB_DIR_NAME = "lib";
 
@@ -326,7 +323,7 @@ public class DefaultContainerService extends IntentService {
         }
         path.delete();
     }
-    
+
     public IBinder onBind(Intent intent) {
         return mBinder;
     }
@@ -414,19 +411,10 @@ public class DefaultContainerService extends IntentService {
         final File sharedLibraryDir = new File(newCachePath, LIB_DIR_NAME);
         if (sharedLibraryDir.mkdir()) {
             int ret = NativeLibraryHelper.copyNativeBinariesIfNeededLI(codeFile, sharedLibraryDir);
-            if (ENABLE_HOUDINI) {
-                if ((ret != PackageManager.INSTALL_SUCCEEDED) &&
-                        (ret != PackageManager.INSTALL_ABI2_SUCCEEDED)) {
-                    Slog.e(TAG, "Could not copy native libraries to " + sharedLibraryDir.getPath());
-                    PackageHelper.destroySdDir(newCid);
-                    return null;
-                }
-            } else {
-                if (ret != PackageManager.INSTALL_SUCCEEDED) {
-                    Slog.e(TAG, "Could not copy native libraries to " + sharedLibraryDir.getPath());
-                    PackageHelper.destroySdDir(newCid);
-                    return null;
-                }
+            if (ret != PackageManager.INSTALL_SUCCEEDED) {
+                Slog.e(TAG, "Could not copy native libraries to " + sharedLibraryDir.getPath());
+                PackageHelper.destroySdDir(newCid);
+                return null;
             }
         } else {
             Slog.e(TAG, "Could not create native lib directory: " + sharedLibraryDir.getPath());
@@ -838,7 +826,7 @@ public class DefaultContainerService extends IntentService {
 
     /**
      * Calculate the container size for an APK. Takes into account the
-     * 
+     *
      * @param apkFile file from which to calculate size
      * @return size in megabytes (2^20 bytes)
      * @throws IOException when there is a problem reading the file
