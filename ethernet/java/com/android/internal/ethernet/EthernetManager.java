@@ -162,6 +162,10 @@ public class EthernetManager implements NetworkStateTracker {
     }
 
     public boolean reconnect() {
+        if (mNetworkInfo.isFailover()) {
+            Log.e(TAG, "EthernetService does not support failover!");
+            return false;
+        }
         try {
             return mService.reconnect();
         } catch (RemoteException e) {
@@ -171,8 +175,8 @@ public class EthernetManager implements NetworkStateTracker {
         return false;
     }
 
+    public NetworkInfo getNetworkInfo() { return mNetworkInfo; }
     public boolean isAvailable() { return mNetworkInfo.isAvailable(); }
-    public NetworkInfo getNetworkInfo() { return new NetworkInfo(mNetworkInfo); }
     public LinkProperties getLinkProperties() {
         return new LinkProperties(mLinkProperties);
     }
