@@ -6706,8 +6706,10 @@ public class WindowManagerService extends IWindowManager.Stub
                                     WindowManagerPolicy.PRESENCE_INTERNAL;
 
                     if (mIsTouchDevice) {
-                        if ((sources & InputDevice.SOURCE_TOUCHSCREEN) ==
-                                InputDevice.SOURCE_TOUCHSCREEN) {
+                        if (((sources & InputDevice.SOURCE_TOUCHSCREEN) ==
+                                InputDevice.SOURCE_TOUCHSCREEN)
+                                || ((sources & InputDevice.SOURCE_MOUSE) ==
+                                InputDevice.SOURCE_MOUSE)) {
                             config.touchscreen = Configuration.TOUCHSCREEN_FINGER;
                         }
                     } else {
