@@ -932,6 +932,8 @@ public final class ActivityStackSupervisor implements DisplayListener {
 
             Binder.restoreCallingIdentity(origId);
 
+            Binder.restoreCallingIdentity(origId);
+
             if (stack.mConfigWillChange) {
                 // If the caller also wants to switch to a new configuration,
                 // do so now.  This allows a clean switch, as we are waiting
