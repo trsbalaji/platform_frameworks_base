@@ -6647,10 +6647,12 @@ public class PackageManagerService extends IPackageManager.Stub {
 
         final boolean has64BitLibs;
         final boolean has32BitLibs;
+        final File clusterRootDir;
         if (isApkFile(codeFile)) {
             // Monolithic install
             has64BitLibs = (new File(apkRoot, new File(LIB64_DIR_NAME, apkName).getPath())).exists();
             has32BitLibs = (new File(apkRoot, new File(LIB_DIR_NAME, apkName).getPath())).exists();
+            clusterRootDir = null;
         } else {
             // Cluster install
             final File rootDir = new File(codeFile, LIB_DIR_NAME);
@@ -6668,6 +6670,7 @@ public class PackageManagerService extends IPackageManager.Stub {
             } else {
                 has32BitLibs = false;
             }
+            clusterRootDir = rootDir;
         }
 
         if (has64BitLibs && !has32BitLibs) {
@@ -6705,6 +6708,16 @@ public class PackageManagerService extends IPackageManager.Stub {
         } else {
             pkg.applicationInfo.primaryCpuAbi = null;
             pkg.applicationInfo.secondaryCpuAbi = null;
+            if (clusterRootDir != null) {
+                if ((VMRuntime.is64BitInstructionSet(getPreferredInstructionSet()))
+                    && ((new File(clusterRootDir, new String("arm64"))).exists())) {
+                    pkg.applicationInfo.primaryCpuAbi = new String("arm64-v8a");
+                } else if ((new File(clusterRootDir, (new String("arm")))).exists()) {
+                    pkg.applicationInfo.primaryCpuAbi = new String("armeabi-v7a");
+                } else if ((new File(clusterRootDir, (new String("arm64")))).exists()) {
+                    pkg.applicationInfo.primaryCpuAbi = new String("arm64-v8a");
+                }
+            }
         }
     }
 
