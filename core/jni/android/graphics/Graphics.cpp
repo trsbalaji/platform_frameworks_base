@@ -534,7 +534,7 @@ AndroidPixelRef::~AndroidPixelRef() {
 }
 jbyteArray AndroidPixelRef::getStorageObj() {
     if (fWrappedPixelRef) {
-        return fWrappedPixelRef->fStorageObj;
+        return fWrappedPixelRef->getStorageObj();
     }
     return fStorageObj;
 }
